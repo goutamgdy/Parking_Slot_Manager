@@ -2421,4 +2421,1507 @@ The backend is now ready for the next major stage:
 ```text
 Git / GitHub
 ```
+## 7. Git and GitHub
 
+The Parking Slot Manager source code is maintained using Git and hosted on GitHub.
+
+Git provides version control for the project, while GitHub provides the remote repository.
+
+### Git Workflow
+
+The basic workflow is:
+
+```text
+Working Directory
+      ↓
+git status
+      ↓
+git add
+      ↓
+git commit
+      ↓
+git push
+      ↓
+GitHub
+```
+
+### Repository
+
+GitHub repository:
+
+```text
+Parking_Slot_Manager
+```
+
+The repository contains the application source code and project documentation.
+
+### Important Files Excluded from Git
+
+The project uses `.gitignore` to prevent local and generated files from being committed.
+
+Current `.gitignore`:
+
+```text
+node_modules/
+.env
+npm-debug.log*
+```
+
+The `.env` file is especially important because it contains local database configuration and credentials.
+
+The application must never commit:
+
+```text
+.env
+```
+
+or any file containing:
+
+- Database passwords
+- GitHub Personal Access Tokens
+- API keys
+- Access tokens
+- Private keys
+- Other credentials
+
+### Local Git Repository
+
+Git was initialized in the project directory and the application files were added to version control.
+
+The repository was then connected to the GitHub remote repository.
+
+### PowerShell Commands Used
+
+Check the Git version:
+
+```powershell
+git --version
+```
+
+Initialize Git in the project directory:
+
+```powershell
+git init
+```
+
+Check repository status:
+
+```powershell
+git status
+```
+
+Review ignored files:
+
+```powershell
+git status --ignored
+```
+
+Add project files:
+
+```powershell
+git add .
+```
+
+Review staged files:
+
+```powershell
+git status
+```
+
+Create the initial commit:
+
+```powershell
+git commit -m "Initial project setup"
+```
+
+Check configured remotes:
+
+```powershell
+git remote -v
+```
+
+Push the project to GitHub:
+
+```powershell
+git push -u origin main
+```
+
+### GitHub Result
+
+The source code is now available in the GitHub repository:
+
+```text
+Parking_Slot_Manager
+```
+
+This repository will become the source repository for the future CI/CD pipeline.
+
+### Future Git Workflow
+
+After the initial push, normal development will follow:
+
+```text
+Make changes
+    ↓
+git status
+    ↓
+git add
+    ↓
+git commit
+    ↓
+git push
+    ↓
+GitHub
+    ↓
+GitHub Actions
+```
+
+GitHub Actions will later automatically build, test, scan, and eventually deploy the application.
+
+### DevOps Importance
+
+Git is the starting point for the project's future CI/CD workflow.
+
+The eventual architecture will be:
+
+```text
+Developer
+    ↓
+Git
+    ↓
+GitHub
+    ↓
+GitHub Actions
+    ↓
+Build
+    ↓
+Test
+    ↓
+Security Scan
+    ↓
+Container Image
+    ↓
+Container Registry
+    ↓
+Kubernetes
+```
+## 8. Frontend Setup
+
+The frontend of the Parking Slot Manager is built using Next.js.
+
+### 8.1 Frontend Technology
+
+The frontend uses:
+
+- Next.js 16.3.6
+- React
+- JavaScript
+- Tailwind CSS
+- ESLint
+- App Router
+
+TypeScript is not used in the initial version of the project. The frontend is intentionally kept simple so that the main learning focus remains on DevOps, CI/CD, containers, Kubernetes, observability, and security.
+
+### 8.2 Create the Next.js Application
+
+From the project root:
+
+```powershell
+npx create-next-app@latest frontend
+```
+
+The following options were selected during project creation:
+
+```text
+TypeScript: No
+Linter: ESLint
+React Compiler: No
+Tailwind CSS: Yes
+src/ directory: No
+App Router: Yes
+Import alias: Default @/*
+AGENTS.md: No
+```
+
+This created the frontend application under:
+
+```text
+frontend/
+```
+
+### 8.3 Run the Frontend Locally
+
+Navigate to the frontend directory:
+
+```powershell
+cd frontend
+```
+
+Start the Next.js development server:
+
+```powershell
+npm run dev
+```
+
+The application is available at:
+
+```text
+http://localhost:3000
+```
+
+The frontend will eventually communicate with the backend API running on:
+
+```text
+http://localhost:5000
+```
+
+### 8.4 Initial Frontend Architecture
+
+The current high-level application flow is:
+
+```text
+Browser
+   |
+   v
+Next.js Frontend
+   |
+   v
+Node.js + Express Backend
+   |
+   v
+PostgreSQL
+```
+
+The frontend will provide the user interface for:
+
+- Viewing parking slots
+- Viewing slot availability
+- Creating parking sessions
+- Exiting parking sessions
+- Viewing parking session information
+
+Application functionality will remain intentionally simple. The primary project objective is to demonstrate an enterprise-style DevOps lifecycle around the application.
+
+### 8.5 Verify Frontend Startup
+
+After creating the Next.js application, the development server was started using:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+The application was successfully accessible at:
+
+```text
+http://localhost:3000
+```
+
+The default Next.js page was displayed successfully in the browser.
+
+This confirms that the Next.js frontend was created and can run locally.
+
+To stop the development server:
+
+```text
+Ctrl + C
+```
+
+### 8.6 Inspect the Generated Frontend Structure
+
+From the `frontend` directory:
+
+```powershell
+Get-ChildItem
+```
+
+Inspect the App Router directory:
+
+```powershell
+Get-ChildItem app
+```
+
+Important generated files/directories include:
+
+```text
+frontend/
+├── app/
+│   ├── globals.css
+│   ├── layout.js
+│   └── page.js
+├── public/
+├── package.json
+├── package-lock.json
+└── ...
+```
+
+`app/page.js` is the current homepage of the application.
+
+`app/layout.js` provides the root layout for the application.
+
+`app/globals.css` contains global styling.
+
+The `public/` directory is used for static assets.
+
+The generated Next.js page will later be replaced with the Parking Slot Manager dashboard.
+
+### 8.8 Create Initial Parking Dashboard
+
+The default Next.js starter page was replaced with an initial Parking Slot Manager dashboard.
+
+The homepage is implemented in:
+
+```text
+frontend/app/page.js
+```
+
+The initial dashboard contains:
+
+- Application title
+- Total parking slot count
+- Available slot count
+- Occupied slot count
+- Parking slot cards
+- Basic responsive layout using Tailwind CSS
+
+At this stage, the dashboard uses static sample values.
+
+The data is intentionally not connected to the backend yet.
+
+The current architecture is:
+
+```text
+Browser
+   |
+   v
+Next.js Dashboard
+   |
+   v
+Static sample data
+```
+
+The next step will replace the static data with real data from the backend API:
+
+```text
+Browser
+   |
+   v
+Next.js Dashboard
+   |
+   | HTTP API request
+   v
+Node.js + Express
+   |
+   v
+PostgreSQL
+```
+
+### 8.9 Run the Frontend
+
+From the frontend directory:
+
+```powershell id="h7g3j2"
+npm run dev
+```
+
+The dashboard can be accessed at:
+
+```text
+http://localhost:3000
+```
+
+### 8.10 Verify Backend API Before Frontend Integration
+
+Before connecting the Next.js frontend to the backend, the backend API was verified independently.
+
+Start the backend:
+
+```powershell id="r4o8jy"
+cd backend
+npm run dev
+```
+
+From another PowerShell terminal, test the parking slot API:
+
+```powershell id="e5b3yt"
+Invoke-RestMethod `
+  -Uri "http://localhost:5000/api/parking-slots" `
+  -Method GET
+```
+
+The endpoint:
+
+```text
+GET http://localhost:5000/api/parking-slots
+```
+
+returns parking slot information retrieved from PostgreSQL.
+
+The intended architecture is:
+
+```text
+PostgreSQL
+    ↑
+    |
+Node.js + Express
+    ↑
+    |
+Next.js Frontend
+    ↑
+    |
+Browser
+```
+
+The frontend communicates with the backend API and does not connect directly to PostgreSQL.
+
+This separation is an important part of the 3-tier architecture.
+
+### 8.11 Connect Next.js Frontend to Backend API
+
+The backend parking slot API was verified independently before frontend integration.
+
+The frontend now retrieves parking slot information from:
+
+```text
+GET http://localhost:5000/api/parking-slots
+```
+
+The frontend homepage is implemented in:
+
+```text
+frontend/app/page.js
+```
+
+The frontend uses the browser `fetch()` API to communicate with the backend.
+
+The data flow is:
+
+```text
+Browser
+   |
+   v
+Next.js
+   |
+   | GET /api/parking-slots
+   v
+Node.js + Express
+   |
+   v
+PostgreSQL
+```
+
+The frontend no longer uses hard-coded parking slot data.
+
+The dashboard calculates:
+
+- Total slots
+- Available slots
+- Occupied slots
+
+from the response returned by the backend API.
+
+### 8.12 Run Backend and Frontend Together
+
+Start the backend in one PowerShell terminal:
+
+```powershell id="v5t1r7"
+cd backend
+npm run dev
+```
+
+Start the frontend in another PowerShell terminal:
+
+```powershell id="u7w2p9"
+cd frontend
+npm run dev
+```
+
+Open the frontend:
+
+```text
+http://localhost:3000
+```
+
+The frontend calls:
+
+```text
+http://localhost:5000/api/parking-slots
+```
+
+and displays the parking slot data returned by the backend.
+
+### 8.13 Frontend State Management
+
+The initial frontend uses React state:
+
+```text
+parkingSlots
+loading
+error
+```
+
+`useEffect()` is used to request parking slot data when the page loads.
+
+The application follows this basic flow:
+
+```text
+Page loads
+    |
+    v
+useEffect()
+    |
+    v
+fetch()
+    |
+    v
+Backend API
+    |
+    v
+JSON response
+    |
+    v
+setParkingSlots()
+    |
+    v
+React re-renders dashboard
+```
+
+At this stage, the frontend uses the browser `fetch()` API directly. No additional HTTP client library has been introduced.
+
+### 8.14 CORS Configuration
+
+During frontend-to-backend integration, the browser initially blocked the API request because the frontend and backend were running on different origins.
+
+Frontend:
+
+```text
+http://localhost:3000
+```
+
+Backend:
+
+```text
+http://localhost:5000
+```
+
+The browser reported:
+
+```text
+Access to fetch at 'http://localhost:5000/api/parking-slots'
+from origin 'http://localhost:3000' has been blocked by CORS policy
+```
+
+#### Install CORS Middleware
+
+From the backend directory:
+
+```powershell id="z9a2m1"
+npm install cors
+```
+
+This adds the `cors` package to the backend dependencies.
+
+#### Configure CORS
+
+The backend imports the CORS middleware:
+
+```js id="x4w8p2"
+const cors = require("cors");
+```
+
+CORS is configured to allow requests from the local Next.js frontend:
+
+```js id="j7v3q1"
+app.use(
+    cors({
+        origin: "http://localhost:3000"
+    })
+);
+```
+
+The backend therefore explicitly allows the development frontend origin.
+
+The resulting request flow is:
+
+```text
+Browser
+   |
+   | http://localhost:3000
+   v
+Next.js Frontend
+   |
+   | HTTP request
+   v
+Express Backend
+   |
+   | Database query
+   v
+PostgreSQL
+```
+
+CORS is enforced by the browser. The backend must provide the appropriate CORS response headers for browser-based cross-origin requests.
+
+For local development, only `http://localhost:3000` is allowed.
+
+In a later deployment, the frontend origin should be supplied through environment/configuration rather than hard-coded.
+
+#### Start Backend
+
+```powershell id="q3s6k8"
+cd backend
+npm run dev
+```
+
+#### Start Frontend
+
+From another PowerShell terminal:
+
+```powershell id="n2f7r4"
+cd frontend
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+The frontend should now be able to retrieve parking slot data from:
+
+```text
+GET http://localhost:5000/api/parking-slots
+```
+
+### 8.15 Frontend API Configuration
+
+After successfully connecting the Next.js frontend to the Express backend, the frontend initially contained the backend URL directly in the React component:
+
+```js
+fetch("http://localhost:5000/api/parking-slots")
+```
+
+Although this works locally, hard-coding environment-specific URLs inside application code is not ideal.
+
+The backend URL should be configurable so that the same frontend code can be used across different environments.
+
+For example:
+
+```text
+Development → http://localhost:5000
+Docker       → Backend container/service
+Kubernetes   → Kubernetes Service
+Production   → Production API URL
+```
+
+Next.js supports environment variables for this purpose.
+
+Browser-accessible environment variables must use the `NEXT_PUBLIC_` prefix.
+
+The planned configuration is:
+
+```text
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+```
+
+The frontend can then construct API requests using the environment variable:
+
+```js
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+fetch(`${API_BASE_URL}/api/parking-slots`);
+```
+
+This separates application logic from environment-specific configuration.
+
+#### PowerShell Command
+
+From the frontend directory:
+
+```powershell
+cd frontend
+```
+
+Create the local environment file:
+
+```powershell
+New-Item .env.local -ItemType File
+```
+
+Add:
+
+```text
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+```
+
+The `.env.local` file should not be committed to Git when it contains environment-specific or sensitive configuration.
+
+Verify the file:
+
+```powershell
+Get-Content .env.local
+```
+
+Expected:
+
+```text
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+```
+
+The frontend API code can then use:
+
+```js
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+```
+
+and:
+
+```js
+fetch(`${API_BASE_URL}/api/parking-slots`);
+```
+
+This approach prepares the application for containerization and Kubernetes, where environment-specific configuration can be supplied without modifying application source code.
+
+#### Important
+
+`NEXT_PUBLIC_` variables are exposed to browser-side JavaScript.
+
+Therefore:
+
+- API URLs are suitable for `NEXT_PUBLIC_` variables.
+- Passwords, database credentials, API secrets, tokens, and other sensitive values must NOT be stored in `NEXT_PUBLIC_` variables.
+
+
+#### Update Frontend API Code
+
+The hard-coded backend URL was removed from `frontend/app/page.js`.
+
+Previously:
+
+```js
+const response = await fetch(
+    "http://localhost:5000/api/parking-slots"
+);
+```
+
+The frontend now reads the API base URL from the environment:
+
+```js
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+```
+
+The API request is then constructed as:
+
+```js
+const response = await fetch(
+    `${API_BASE_URL}/api/parking-slots`
+);
+```
+
+This creates the following configuration flow:
+
+```text
+page.js
+   |
+   | process.env.NEXT_PUBLIC_API_BASE_URL
+   ↓
+.env.local
+   |
+   | http://localhost:5000
+   ↓
+Express Backend
+```
+
+#### Restart Frontend
+
+After changing environment configuration, restart the Next.js development server.
+
+Stop the server:
+
+```powershell
+Ctrl+C
+```
+
+Start it again:
+
+```powershell
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Verify that the dashboard still displays the live parking slot information.
+
+Expected current state:
+
+```text
+Total Slots = 10
+Available = 9
+Occupied = 1
+```
+
+This confirms that the frontend is successfully reading its API endpoint from environment configuration rather than using a hard-coded backend URL.
+
+
+### 8.16 Frontend API Layer
+
+As the frontend grows, keeping HTTP API calls directly inside React components can make the components difficult to maintain.
+
+The initial implementation performed the backend request directly inside:
+
+```text
+frontend/app/page.js
+```
+
+The frontend will therefore introduce a small API layer.
+
+New structure:
+
+```text
+frontend/
+├── app/
+│   └── page.js
+└── lib/
+    └── api.js
+```
+
+The responsibility will be separated as follows:
+
+```text
+page.js
+   |
+   | Request parking slot data
+   ↓
+lib/api.js
+   |
+   | HTTP request
+   ↓
+Express Backend
+   |
+   ↓
+PostgreSQL
+```
+
+The React page will focus primarily on UI and state management, while `lib/api.js` will contain frontend API communication logic.
+
+#### Create API Layer Directory
+
+From the frontend directory:
+
+```powershell
+cd frontend
+New-Item -ItemType Directory lib
+```
+
+Create the API file:
+
+```powershell
+New-Item lib\api.js -ItemType File
+```
+
+Verify:
+
+```powershell
+Get-ChildItem lib
+```
+
+Expected:
+
+```text
+api.js
+```
+
+The API implementation will be added in the next step.
+
+This separation prepares the frontend for additional backend APIs without putting all HTTP communication logic inside the page component.
+
+
+#### Implement Parking Slot API Function
+
+The frontend API layer was implemented in:
+
+```text
+frontend/lib/api.js
+```
+
+The file contains the backend API communication logic for retrieving parking slots.
+
+Implementation:
+
+```js
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+export const getParkingSlots = async () => {
+    const response = await fetch(
+        `${API_BASE_URL}/api/parking-slots`
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch parking slots");
+    }
+
+    return response.json();
+};
+```
+
+The API layer is responsible for:
+
+1. Reading the backend URL from environment configuration.
+2. Sending the HTTP request.
+3. Checking whether the HTTP response was successful.
+4. Converting the response into JSON.
+5. Returning the parking slot data to the caller.
+
+The React page does not need to know the implementation details of the HTTP request.
+
+The planned frontend flow is:
+
+```text
+page.js
+   |
+   | getParkingSlots()
+   ↓
+lib/api.js
+   |
+   | fetch()
+   ↓
+Express Backend
+   |
+   ↓
+PostgreSQL
+```
+
+No additional HTTP library such as Axios was introduced because the browser's built-in `fetch()` API is sufficient for the current application.
+
+#### Verify API Layer File
+
+From the frontend directory:
+
+```powershell
+Get-Content lib\api.js
+```
+
+This confirms that the API communication function has been created.
+
+The next step is to update `page.js` to use `getParkingSlots()` instead of directly calling `fetch()`.
+
+#### Integrate API Layer with `page.js`
+
+After implementing `getParkingSlots()` in `lib/api.js`, the React page was updated to use the API layer.
+
+The following import was added:
+
+```js
+import { getParkingSlots } from "../lib/api";
+```
+
+The API URL configuration was removed from `page.js`:
+
+```js
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+```
+
+The direct `fetch()` implementation was also removed.
+
+Previously, `page.js` contained:
+
+```js
+const response = await fetch(
+    `${API_BASE_URL}/api/parking-slots`
+);
+
+if (!response.ok) {
+    throw new Error("Failed to fetch parking slots");
+}
+
+const data = await response.json();
+```
+
+The page now uses:
+
+```js
+const data = await getParkingSlots();
+
+setParkingSlots(data);
+```
+
+The resulting separation is:
+
+```text
+React Component
+      |
+      | getParkingSlots()
+      ↓
+frontend/lib/api.js
+      |
+      | fetch()
+      ↓
+Express Backend
+      |
+      ↓
+PostgreSQL
+```
+
+This keeps the React component focused on:
+
+- UI rendering
+- React state
+- Loading state
+- Error state
+- Display calculations
+
+The API layer is responsible for:
+
+- API URL configuration
+- HTTP communication
+- Response validation
+- JSON parsing
+
+#### Verify Frontend
+
+The Next.js development server can be started with:
+
+```powershell
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Verify the dashboard still displays live database information.
+
+Expected:
+
+```text
+Total Slots = 10
+Available = 9
+Occupied = 1
+```
+
+The API layer is now successfully integrated with the dashboard.
+
+### 8.17 Parking Session API Layer
+
+The backend already provides an API for creating a parking session:
+
+```text
+POST /api/parking-sessions
+```
+
+The frontend API layer was extended to communicate with this endpoint.
+
+The function added to:
+
+```text
+frontend/lib/api.js
+```
+
+is:
+
+```js
+export const createParkingSession = async (vehicleId, slotId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/api/parking-sessions`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                vehicleId,
+                slotId
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || "Failed to create parking session");
+    }
+
+    return data;
+};
+```
+
+The function sends:
+
+```json
+{
+    "vehicleId": 1,
+    "slotId": 1
+}
+```
+
+to:
+
+```text
+POST /api/parking-sessions
+```
+
+The frontend API layer now contains:
+
+```text
+getParkingSlots()
+        ↓
+GET /api/parking-slots
+
+createParkingSession(vehicleId, slotId)
+        ↓
+POST /api/parking-sessions
+```
+
+The backend handles the database transaction.
+
+For a successful parking operation, the backend:
+
+1. Validates the vehicle.
+2. Locks and validates the parking slot.
+3. Checks whether the slot is available.
+4. Checks vehicle/slot type compatibility.
+5. Creates the parking session.
+6. Marks the slot as `OCCUPIED`.
+7. Commits the transaction.
+
+The frontend does not implement this database logic. It only communicates with the backend API.
+
+#### Verify API Layer
+
+From the frontend directory:
+
+```powershell
+Get-Content lib\api.js
+```
+
+The next step is to connect `createParkingSession()` to a frontend form.
+
+#### Add Parking Session Form
+
+The frontend was extended to allow a user to create a parking session.
+
+The form accepts:
+
+- Vehicle ID
+- Parking Slot ID
+
+The UI calls:
+
+```text
+POST /api/parking-sessions
+```
+
+through the frontend API layer.
+
+New frontend state:
+
+```js
+const [vehicleId, setVehicleId] = useState("");
+const [slotId, setSlotId] = useState("");
+const [creatingSession, setCreatingSession] = useState(false);
+const [successMessage, setSuccessMessage] = useState("");
+```
+
+The form submission is handled by:
+
+```js
+const handleCreateParkingSession = async (event) => {
+    event.preventDefault();
+
+    setError("");
+    setSuccessMessage("");
+    setCreatingSession(true);
+
+    try {
+        const session = await createParkingSession(
+            Number(vehicleId),
+            Number(slotId)
+        );
+
+        setSuccessMessage(
+            `Parking session ${session.id} created successfully`
+        );
+
+        setVehicleId("");
+        setSlotId("");
+
+        const updatedSlots = await getParkingSlots();
+        setParkingSlots(updatedSlots);
+
+    } catch (error) {
+        setError(error.message);
+
+    } finally {
+        setCreatingSession(false);
+    }
+};
+```
+
+The frontend does not directly update the parking slot status.
+
+The backend remains responsible for the parking transaction:
+
+```text
+Frontend
+   |
+   | POST /api/parking-sessions
+   ↓
+Backend
+   |
+   | Database transaction
+   ↓
+parking_sessions
+   +
+parking_slots
+   |
+   ↓
+Frontend refreshes slot data
+```
+
+This maintains the backend/database as the source of truth.
+
+The frontend also provides a loading state while the parking request is being processed.
+
+Example:
+
+```text
+Park Vehicle
+     ↓
+Parking...
+     ↓
+Parking session created successfully
+```
+
+For testing, use the existing test vehicle:
+
+```text
+Vehicle ID = 1
+```
+
+The selected parking slot must be:
+
+```text
+AVAILABLE
+```
+
+and must have:
+
+```text
+slot_type = CAR
+```
+
+because the test vehicle is a CAR.
+
+After successful creation, the frontend refreshes the parking-slot API and the dashboard reflects the new slot status.
+
+Expected state after successfully parking one additional vehicle:
+
+```text
+Total Slots = 10
+Available   = 8
+Occupied    = 2
+```
+
+The exact slot ID should be selected based on the current available CAR slot shown by the dashboard.
+
+#### Parking Session UI
+
+The parking-session API was connected to the Next.js dashboard.
+
+The frontend now contains a **Park Vehicle** form with:
+
+- Vehicle ID
+- Parking Slot ID
+- Park Vehicle button
+- Request loading state
+- Success message
+- Error message
+
+The form is handled by:
+
+```js
+const handleCreateParkingSession = async (event) => {
+    event.preventDefault();
+
+    setError("");
+    setSuccessMessage("");
+    setCreatingSession(true);
+
+    try {
+        const session = await createParkingSession(
+            Number(vehicleId),
+            Number(slotId)
+        );
+
+        setSuccessMessage(
+            `Parking session ${session.id} created successfully`
+        );
+
+        setVehicleId("");
+        setSlotId("");
+
+        const updatedSlots = await getParkingSlots();
+        setParkingSlots(updatedSlots);
+
+    } catch (error) {
+        setError(error.message);
+
+    } finally {
+        setCreatingSession(false);
+    }
+};
+```
+
+The complete request flow is now:
+
+```text
+User
+  |
+  | Vehicle ID + Slot ID
+  ↓
+Next.js page.js
+  |
+  | createParkingSession()
+  ↓
+frontend/lib/api.js
+  |
+  | POST /api/parking-sessions
+  ↓
+Express Backend
+  |
+  | Transaction
+  ↓
+PostgreSQL
+  |
+  ├── Create parking session
+  └── Mark slot OCCUPIED
+  |
+  ↓
+Next.js
+  |
+  | GET /api/parking-slots
+  ↓
+Updated Dashboard
+```
+
+The frontend does not directly modify the database.
+
+The backend remains responsible for business rules and transaction management.
+
+### PowerShell Commands
+
+Start the frontend from the frontend directory:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Verify that the **Park Vehicle** section is displayed and the existing dashboard data still loads correctly.
+### 8.18 Verify Parking Session from Frontend
+
+The frontend now supports creating a parking session through the backend API.
+
+The complete flow is:
+
+```text
+Browser
+   ↓
+Next.js Parking Dashboard
+   ↓
+POST /api/parking-sessions
+   ↓
+Node.js + Express
+   ↓
+Parking Session Service
+   ↓
+PostgreSQL Transaction
+   ↓
+Parking Slot becomes OCCUPIED
+```
+
+Before testing, identify an available CAR slot using pgAdmin:
+
+```sql
+SELECT
+    id,
+    slot_number,
+    slot_type,
+    status
+FROM parking_slots
+WHERE slot_type = 'CAR'
+  AND status = 'AVAILABLE'
+ORDER BY id;
+```
+
+Use:
+
+```text
+Vehicle ID = 1
+Slot ID = ID of an available CAR slot
+```
+
+The frontend sends the request through:
+
+```text
+frontend/lib/api.js
+```
+
+using:
+
+```text
+POST /api/parking-sessions
+```
+
+The backend validates the vehicle and parking slot, starts a PostgreSQL transaction, creates the parking session, marks the slot as `OCCUPIED`, and commits the transaction.
+
+After a successful request, the frontend calls `getParkingSlots()` again so that the dashboard reflects the latest backend state.
+
+Expected dashboard state after parking one additional vehicle:
+
+```text
+Total      10
+Available   8
+Occupied    2
+```
+
+The frontend does not directly modify the database. The backend remains the source of truth.
+
+#### PowerShell command used to start the frontend
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+#### Verification checklist
+
+- [ ] Park Vehicle section is visible
+- [ ] Dashboard loads parking slots
+- [ ] Available CAR slot identified
+- [ ] Vehicle ID 1 entered
+- [ ] Available CAR slot ID entered
+- [ ] Parking session created successfully
+- [ ] Success message displayed
+- [ ] Selected slot becomes OCCUPIED
+- [ ] Available count decreases by 1
+- [ ] Occupied count increases by 1
+- [ ] Backend remains the source of truth

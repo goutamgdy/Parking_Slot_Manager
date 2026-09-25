@@ -1,6 +1,8 @@
 require("dotenv").config();
 
 const express = require("express");
+const cors = require("cors");
+
 const pool = require("./db");
 
 const config = require("./config");
@@ -12,8 +14,14 @@ const parkingSessionRoutes = require("./routes/parkingSessionRoutes");
 const parkingSlotRoutes = require("./routes/parkingSlotRoutes");
 
 const app = express();
-
 const PORT = config.server.port;
+
+app.use(
+    cors({
+        origin: "http://localhost:3000"
+    })
+);
+
 
 app.use(express.json());
 
