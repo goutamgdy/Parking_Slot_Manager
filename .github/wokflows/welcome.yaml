@@ -1,0 +1,23 @@
+name: Welcome Anna
+
+on:
+  push:
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Welcome message 🎉
+        run: |
+          echo "🎉🎊✨ Welcome Anna! ✨🎊🎉"
+          echo ""
+          echo "😊 You have modified these files in that commit:"
+          echo ""
+
+          git diff-tree --no-commit-id --name-status -r "${{ github.sha }}"
