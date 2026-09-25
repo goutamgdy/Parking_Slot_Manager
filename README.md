@@ -3924,3 +3924,52 @@ http://localhost:3000
 - [ ] Selected slot becomes OCCUPIED
 - [ ] Available count decreases by 1
 - [ ] Occupied count increases by 1
+
+
+#### Verification Result
+
+The frontend parking flow was successfully tested.
+
+A CAR vehicle was parked using the Next.js dashboard.
+
+The request flowed through the complete application stack:
+
+```text
+Next.js Frontend
+      ↓
+POST /api/parking-sessions
+      ↓
+Node.js + Express
+      ↓
+Parking Session Service
+      ↓
+PostgreSQL Transaction
+      ↓
+Parking Session Created
+      ↓
+Parking Slot → OCCUPIED
+      ↓
+Frontend Refresh
+```
+
+The dashboard correctly reflected the updated database state.
+
+Before parking:
+
+```text
+Total      10
+Available   9
+Occupied    1
+```
+
+After parking:
+
+```text
+Total      10
+Available   8
+Occupied    2
+```
+
+This confirms that the frontend, backend API, service layer, transaction logic, database, and frontend refresh mechanism are working together successfully.
+
+**Step 8.18 completed successfully.** ✅
