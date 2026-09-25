@@ -1,6 +1,10 @@
 const pool = require("../db");
-
+const logger = require("../utils/logger");
 const createParkingSession = async (vehicleId, slotId) => {
+    logger.info(
+        `Parking session creation started vehicleId=${vehicleId} slotId=${slotId}`
+    );
+
     const client = await pool.connect();
 
     try {
@@ -22,6 +26,10 @@ const createParkingSession = async (vehicleId, slotId) => {
 
         const vehicle = vehicleResult.rows[0];
 
+        logger.info(
+            `Vehicle validated vehicleId=${vehicleId} vehicleType=${vehicle.vehicle_type}`
+        );
+
         // 2. Check parking slot
         const slotResult = await client.query(
             `
@@ -38,6 +46,10 @@ const createParkingSession = async (vehicleId, slotId) => {
         }
 
         const slot = slotResult.rows[0];
+
+        logger.info(
+            `Parking slot validated slotId=${slotId} slotType=${slot.slot_type} status=${slot.status}`
+        );
 
         // 3. Check slot status
         if (slot.status !== "AVAILABLE") {
@@ -70,6 +82,10 @@ const createParkingSession = async (vehicleId, slotId) => {
             [vehicleId, slotId]
         );
 
+        logger.info(
+            `Parking session created sessionId=${sessionResult.rows[0].id}`
+        );
+
         // 6. Mark parking slot as OCCUPIED
         await client.query(
             `
@@ -80,15 +96,26 @@ const createParkingSession = async (vehicleId, slotId) => {
             [slotId]
         );
 
+        logger.info(
+            `Parking slot marked OCCUPIED slotId=${slotId}`
+        );
+
         // 7. Commit transaction
         await client.query("COMMIT");
+
+        logger.info(
+            `Parking session creation completed sessionId=${sessionResult.rows[0].id}`
+        );
 
         return sessionResult.rows[0];
 
     } catch (error) {
 
-        // Rollback everything if anything fails
         await client.query("ROLLBACK");
+
+        logger.error(
+            `Parking session creation failed vehicleId=${vehicleId} slotId=${slotId} error=${error.message}`
+        );
 
         throw error;
 
@@ -98,8 +125,11 @@ const createParkingSession = async (vehicleId, slotId) => {
 };
 
 
-
 const exitParkingSession = async (sessionId) => {
+    logger.info(
+        `Parking session exit started sessionId=${sessionId}`
+    );
+
     const client = await pool.connect();
 
     try {
@@ -129,6 +159,10 @@ const exitParkingSession = async (sessionId) => {
 
         const session = sessionResult.rows[0];
 
+        logger.info(
+            `Parking session validated sessionId=${sessionId} status=${session.status} slotId=${session.parking_slot_id}`
+        );
+
         // 2. Check session status
         if (session.status !== "ACTIVE") {
             throw new Error("Parking session is already completed");
@@ -148,6 +182,10 @@ const exitParkingSession = async (sessionId) => {
         // Simple pricing:
         // ₹20 per hour
         const parkingFee = hours * 20;
+
+        logger.info(
+            `Parking fee calculated sessionId=${sessionId} hours=${hours} fee=${parkingFee}`
+        );
 
         // 4. Update parking session
         const updatedSessionResult = await client.query(
@@ -170,6 +208,10 @@ const exitParkingSession = async (sessionId) => {
             [parkingFee, sessionId]
         );
 
+        logger.info(
+            `Parking session marked COMPLETED sessionId=${sessionId}`
+        );
+
         // 5. Free parking slot
         await client.query(
             `
@@ -180,14 +222,26 @@ const exitParkingSession = async (sessionId) => {
             [session.parking_slot_id]
         );
 
+        logger.info(
+            `Parking slot marked AVAILABLE slotId=${session.parking_slot_id}`
+        );
+
         // 6. Commit transaction
         await client.query("COMMIT");
+
+        logger.info(
+            `Parking session exit completed sessionId=${sessionId} fee=${parkingFee}`
+        );
 
         return updatedSessionResult.rows[0];
 
     } catch (error) {
 
         await client.query("ROLLBACK");
+
+        logger.error(
+            `Parking session exit failed sessionId=${sessionId} error=${error.message}`
+        );
 
         throw error;
 
