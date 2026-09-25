@@ -3924,4 +3924,3 @@ http://localhost:3000
 - [ ] Selected slot becomes OCCUPIED
 - [ ] Available count decreases by 1
 - [ ] Occupied count increases by 1
-- [ ] Backend remains the source of truth
