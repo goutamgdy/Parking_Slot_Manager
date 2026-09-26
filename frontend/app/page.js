@@ -1,27 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import {
     getParkingSlots,
-    createParkingSession
+    getActiveParkingSessions,
+    getParkingSessionHistory,
+    createParkingSession,
+    exitParkingSession
 } from "../lib/api";
 
 export default function Home() {
     const [parkingSlots, setParkingSlots] = useState([]);
+    const [activeSessions, setActiveSessions] = useState([]);
+    const [sessionHistory, setSessionHistory] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     const [vehicleId, setVehicleId] = useState("");
     const [slotId, setSlotId] = useState("");
     const [creatingSession, setCreatingSession] = useState(false);
+    const [exitingSessionId, setExitingSessionId] = useState(null);
+
     const [successMessage, setSuccessMessage] = useState("");
+    const [exitMessage, setExitMessage] = useState("");
 
     useEffect(() => {
-        const fetchParkingSlots = async () => {
+        const fetchDashboardData = async () => {
             try {
-                const data = await getParkingSlots();
+                const [slots, sessions, history] = await Promise.all([
+                    getParkingSlots(),
+                    getActiveParkingSessions(),
+                    getParkingSessionHistory()
+                ]);
 
-                setParkingSlots(data);
+                setParkingSlots(slots);
+                setActiveSessions(sessions);
+                setSessionHistory(history);
 
             } catch (error) {
                 setError(error.message);
@@ -31,7 +47,7 @@ export default function Home() {
             }
         };
 
-        fetchParkingSlots();
+        fetchDashboardData();
     }, []);
 
     const totalSlots = parkingSlots.length;
@@ -49,6 +65,7 @@ export default function Home() {
 
         setError("");
         setSuccessMessage("");
+        setExitMessage("");
         setCreatingSession(true);
 
         try {
@@ -64,14 +81,51 @@ export default function Home() {
             setVehicleId("");
             setSlotId("");
 
-            const updatedSlots = await getParkingSlots();
-            setParkingSlots(updatedSlots);
+            const [updatedSlots, updatedSessions, updatedHistory] =
+                await Promise.all([
+                    getParkingSlots(),
+                    getActiveParkingSessions(),
+                    getParkingSessionHistory()
+                ]);
 
+            setParkingSlots(updatedSlots);
+            setActiveSessions(updatedSessions);
+            setSessionHistory(updatedHistory);
         } catch (error) {
             setError(error.message);
 
         } finally {
             setCreatingSession(false);
+        }
+    };
+
+    const handleExitParkingSession = async (sessionId) => {
+        setError("");
+        setSuccessMessage("");
+        setExitMessage("");
+        setExitingSessionId(sessionId);
+
+        try {
+            const session = await exitParkingSession(sessionId);
+
+            setExitMessage(
+                `Parking session ${session.id} completed successfully. Parking fee: ₹${session.parking_fee}`
+            );
+
+            const [updatedSlots, updatedSessions] =
+                await Promise.all([
+                    getParkingSlots(),
+                    getActiveParkingSessions()
+                ]);
+
+            setParkingSlots(updatedSlots);
+            setActiveSessions(updatedSessions);
+
+        } catch (error) {
+            setError(error.message);
+
+        } finally {
+            setExitingSessionId(null);
         }
     };
 
@@ -90,7 +144,7 @@ export default function Home() {
 
                 {loading && (
                     <p className="mt-6 text-gray-600">
-                        Loading parking slots...
+                        Loading parking data...
                     </p>
                 )}
 
@@ -206,6 +260,199 @@ export default function Home() {
 
                         </div>
 
+                        {/* Active Parking Sessions */}
+
+                        <div className="mt-10 rounded-lg bg-white p-6 shadow">
+
+                            <h2 className="text-xl font-semibold text-gray-800">
+                                Active Parking Sessions
+                            </h2>
+
+                            {activeSessions.length === 0 ? (
+                                <p className="mt-4 text-gray-600">
+                                    No active parking sessions.
+                                </p>
+                            ) : (
+                                <div className="mt-6 space-y-4">
+
+                                    {activeSessions.map((session) => (
+
+                                        <div
+                                            key={session.id}
+                                            className="rounded-lg border border-gray-200 p-4"
+                                        >
+
+                                            <div className="grid gap-4 md:grid-cols-4">
+
+                                                <div>
+                                                    <p className="text-sm text-gray-500">
+                                                        Vehicle
+                                                    </p>
+
+                                                    <p className="font-semibold text-gray-900">
+                                                        {session.vehicle_number}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-sm text-gray-500">
+                                                        Slot
+                                                    </p>
+
+                                                    <p className="font-semibold text-gray-900">
+                                                        {session.slot_number}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-sm text-gray-500">
+                                                        Entry Time
+                                                    </p>
+
+                                                    <p className="font-semibold text-gray-900">
+                                                        {new Date(
+                                                            session.entry_time
+                                                        ).toLocaleString()}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleExitParkingSession(
+                                                                session.id
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            exitingSessionId ===
+                                                            session.id
+                                                        }
+                                                        className="w-full rounded-md bg-red-600 px-4 py-2 font-semibold text-white disabled:opacity-50"
+                                                    >
+                                                        {exitingSessionId ===
+                                                        session.id
+                                                            ? "Exiting..."
+                                                            : "Exit Vehicle"}
+                                                    </button>
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    ))}
+
+                                </div>
+                            )}
+
+                            {exitMessage && (
+                                <p className="mt-4 text-green-600">
+                                    {exitMessage}
+                                </p>
+                            )}
+
+                        </div>
+                        {/* Parking Session History */}
+
+                        <div className="mt-10 rounded-lg bg-white p-6 shadow">
+
+                            <h2 className="text-xl font-semibold text-gray-800">
+                                Parking Session History
+                            </h2>
+
+                            {sessionHistory.length === 0 ? (
+                                <p className="mt-4 text-gray-600">
+                                    No completed parking sessions.
+                                </p>
+                            ) : (
+                                <div className="mt-6 overflow-x-auto">
+
+                                    <table className="min-w-full border-collapse">
+
+                                        <thead>
+                                            <tr className="border-b border-gray-200 text-left">
+
+                                                <th className="px-4 py-3 text-sm font-semibold text-gray-700">
+                                                    Vehicle
+                                                </th>
+
+                                                <th className="px-4 py-3 text-sm font-semibold text-gray-700">
+                                                    Slot
+                                                </th>
+
+                                                <th className="px-4 py-3 text-sm font-semibold text-gray-700">
+                                                    Entry Time
+                                                </th>
+
+                                                <th className="px-4 py-3 text-sm font-semibold text-gray-700">
+                                                    Exit Time
+                                                </th>
+
+                                                <th className="px-4 py-3 text-sm font-semibold text-gray-700">
+                                                    Fee
+                                                </th>
+
+                                                <th className="px-4 py-3 text-sm font-semibold text-gray-700">
+                                                    Status
+                                                </th>
+
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+
+                                            {sessionHistory.map((session) => (
+
+                                                <tr
+                                                    key={session.id}
+                                                    className="border-b border-gray-100"
+                                                >
+
+                                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                                        {session.vehicle_number}
+                                                    </td>
+
+                                                    <td className="px-4 py-3 text-gray-700">
+                                                        {session.slot_number}
+                                                    </td>
+
+                                                    <td className="px-4 py-3 text-gray-700">
+                                                        {new Date(
+                                                            session.entry_time
+                                                        ).toLocaleString()}
+                                                    </td>
+
+                                                    <td className="px-4 py-3 text-gray-700">
+                                                        {new Date(
+                                                            session.exit_time
+                                                        ).toLocaleString()}
+                                                    </td>
+
+                                                    <td className="px-4 py-3 font-semibold text-gray-900">
+                                                        ₹{session.parking_fee}
+                                                    </td>
+
+                                                    <td className="px-4 py-3">
+
+                                                        <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
+                                                            {session.status}
+                                                        </span>
+
+                                                    </td>
+
+                                                </tr>
+
+                                            ))}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+                            )}
+
+                        </div>
                         {/* Parking Slots */}
 
                         <div className="mt-10 rounded-lg bg-white p-6 shadow">
