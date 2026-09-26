@@ -250,7 +250,61 @@ const exitParkingSession = async (sessionId) => {
     }
 };
 
+const getActiveParkingSessions = async () => {
+    const result = await pool.query(
+        `
+        SELECT
+            ps.id,
+            ps.vehicle_id,
+            v.vehicle_number,
+            v.vehicle_type,
+            ps.parking_slot_id,
+            p.slot_number,
+            ps.entry_time,
+            ps.status
+        FROM parking_sessions ps
+        JOIN vehicles v
+            ON ps.vehicle_id = v.id
+        JOIN parking_slots p
+            ON ps.parking_slot_id = p.id
+        WHERE ps.status = 'ACTIVE'
+        ORDER BY ps.entry_time
+        `
+    );
+
+    return result.rows;
+};
+
+const getParkingSessionHistory = async () => {
+    const result = await pool.query(
+        `
+        SELECT
+            ps.id,
+            ps.vehicle_id,
+            v.vehicle_number,
+            v.vehicle_type,
+            ps.parking_slot_id,
+            p.slot_number,
+            ps.entry_time,
+            ps.exit_time,
+            ps.parking_fee,
+            ps.status
+        FROM parking_sessions ps
+        JOIN vehicles v
+            ON ps.vehicle_id = v.id
+        JOIN parking_slots p
+            ON ps.parking_slot_id = p.id
+        WHERE ps.status = 'COMPLETED'
+        ORDER BY ps.exit_time DESC
+        `
+    );
+
+    return result.rows;
+};
+
 module.exports = {
     createParkingSession,
-    exitParkingSession
+    exitParkingSession,
+    getActiveParkingSessions,
+    getParkingSessionHistory
 };

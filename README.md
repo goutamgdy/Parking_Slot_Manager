@@ -3973,3 +3973,427 @@ Occupied    2
 This confirms that the frontend, backend API, service layer, transaction logic, database, and frontend refresh mechanism are working together successfully.
 
 **Step 8.18 completed successfully.** ✅
+
+### 8.19 Parking Exit API Layer
+
+The backend already provides an API for exiting an active parking session:
+
+```text
+POST /api/parking-sessions/:id/exit
+```
+
+The frontend API layer was extended with:
+
+```text
+exitParkingSession(sessionId)
+```
+
+File:
+
+```text
+frontend/lib/api.js
+```
+
+The function sends a `POST` request to:
+
+```text
+/api/parking-sessions/:id/exit
+```
+
+Example:
+
+```text
+POST /api/parking-sessions/2/exit
+```
+
+The backend is responsible for:
+
+1. Finding the active parking session.
+2. Validating the session.
+3. Calculating the parking fee.
+4. Setting `exit_time`.
+5. Changing the session status to `COMPLETED`.
+6. Changing the parking slot status to `AVAILABLE`.
+7. Committing the PostgreSQL transaction.
+8. Returning the completed parking session.
+
+The frontend does not calculate the parking fee or directly modify the database.
+
+This keeps the backend as the application source of truth.
+
+**Step 8.19 API layer completed.** ✅
+
+### 8.20 Active Parking Sessions API
+
+To support the frontend Exit Vehicle functionality, the backend needs to expose the currently active parking sessions.
+
+A new service function was added:
+
+```text
+getActiveParkingSessions()
+```
+
+File:
+
+```text
+backend/src/services/parkingSessionService.js
+```
+
+The function retrieves active parking sessions by joining:
+
+```text
+parking_sessions
+      ↓
+vehicles
+      ↓
+parking_slots
+```
+
+The API data includes:
+
+- Parking session ID
+- Vehicle ID
+- Vehicle number
+- Vehicle type
+- Parking slot ID
+- Parking slot number
+- Entry time
+- Session status
+
+Only sessions with:
+
+```sql
+status = 'ACTIVE'
+```
+
+are returned.
+
+The service layer remains responsible for database access while the frontend will later consume this information through an HTTP API.
+
+PowerShell command used to test the existing endpoint before implementation:
+
+```powershell
+Invoke-RestMethod `
+  -Uri "http://localhost:5000/api/parking-sessions" `
+  -Method GET
+```
+
+Before adding the GET endpoint, the backend correctly returned:
+
+```text
+Cannot GET /api/parking-sessions
+```
+
+This confirmed that a GET route for active parking sessions did not yet exist.
+
+**Step 8.20 service implementation in progress.**
+
+### 8.21 Active Parking Sessions Controller
+
+The active parking session service was connected to the HTTP controller layer.
+
+File:
+
+```text
+backend/src/controllers/parkingSessionController.js
+```
+
+Added controller function:
+
+```text
+getActiveParkingSessions()
+```
+
+The controller:
+
+1. Calls `parkingSessionService.getActiveParkingSessions()`.
+2. Returns HTTP `200` with the active sessions.
+3. Passes errors to the centralized error-handling middleware.
+
+The controller does not contain SQL or database logic.
+
+The responsibility is separated as:
+
+```text
+HTTP Request
+     ↓
+Controller
+     ↓
+Service
+     ↓
+PostgreSQL
+```
+
+This keeps the backend organized into separate layers.
+
+**Step 8.21 completed.** ✅
+
+### 8.23 Frontend Active Parking Sessions API
+
+The backend GET endpoint was successfully tested:
+
+```powershell id="t7s5w8"
+Invoke-RestMethod `
+  -Uri "http://localhost:5000/api/parking-sessions" `
+  -Method GET
+```
+
+The endpoint returned the currently active parking sessions.
+
+At the time of testing, two active sessions were returned:
+
+```text id="l4q7rc"
+Session 2 → Vehicle MH12AB1234 → CAR-004 → ACTIVE
+Session 4 → Vehicle MH12AB1234 → CAR-001 → ACTIVE
+```
+
+The frontend API layer was extended with:
+
+```text id="h0j8me"
+getActiveParkingSessions()
+```
+
+File:
+
+```text id="i8m9br"
+frontend/lib/api.js
+```
+
+The function calls:
+
+```text id="f7k3dr"
+GET /api/parking-sessions
+```
+
+The frontend will use this information to display active parking sessions and allow the user to select a session for vehicle exit.
+
+The frontend still does not directly access PostgreSQL.
+
+The architecture remains:
+
+```text id="7l2n0k"
+Next.js
+   ↓
+Backend API
+   ↓
+Service Layer
+   ↓
+PostgreSQL
+```
+
+**Step 8.23 completed when the frontend API function is added.**
+
+### 8.24 Frontend Exit Vehicle Flow
+
+The frontend Exit Vehicle functionality was implemented and successfully tested.
+
+The frontend calls:
+
+```text
+POST /api/parking-sessions/:id/exit
+```
+
+when the user clicks the **Exit Vehicle** button.
+
+The complete flow is:
+
+```text
+User clicks Exit Vehicle
+        ↓
+Next.js
+        ↓
+exitParkingSession(sessionId)
+        ↓
+POST /api/parking-sessions/:id/exit
+        ↓
+Express Controller
+        ↓
+Parking Session Service
+        ↓
+PostgreSQL Transaction
+        ↓
+Calculate parking fee
+        ↓
+Session → COMPLETED
+        ↓
+Slot → AVAILABLE
+        ↓
+Transaction COMMIT
+        ↓
+Next.js refreshes data
+```
+
+The frontend displays the parking fee returned by the backend.
+
+The frontend does not calculate the parking fee.
+
+The frontend also refreshes:
+
+```text
+getParkingSlots()
+getActiveParkingSessions()
+```
+
+after a successful exit.
+
+This ensures that the UI reflects the latest backend/database state.
+
+#### Verification
+
+Before exit:
+
+```text
+Total      10
+Available   8
+Occupied    2
+```
+
+After successfully exiting one vehicle:
+
+```text
+Total      10
+Available   9
+Occupied    1
+```
+
+The completed parking session was removed from the Active Parking Sessions section and its parking slot became `AVAILABLE`.
+
+**Step 8.24 completed successfully.** ✅
+
+### 8.25 Parking Session History
+
+Parking Session History was added to allow the frontend to display completed parking sessions.
+
+The history is retrieved from the backend using:
+
+```text
+GET /api/parking-sessions/history
+```
+
+The complete flow is:
+
+```text
+Next.js
+   ↓
+GET /api/parking-sessions/history
+   ↓
+Express Route
+   ↓
+Parking Session Controller
+   ↓
+Parking Session Service
+   ↓
+PostgreSQL
+   ↓
+Completed Parking Sessions
+   ↓
+Next.js
+   ↓
+Parking Session History table
+```
+
+The backend retrieves only sessions where:
+
+```sql
+status = 'COMPLETED'
+```
+
+The history includes:
+
+- Vehicle number
+- Vehicle type
+- Parking slot
+- Entry time
+- Exit time
+- Parking fee
+- Session status
+
+The history is ordered by exit time in descending order so the most recently completed parking session appears first.
+
+The frontend does not calculate parking fees or session status.
+
+The backend/database remain the source of truth.
+
+### API
+
+```text
+GET /api/parking-sessions/history
+```
+
+Example response:
+
+```json
+[
+    {
+        "id": 1,
+        "vehicle_id": 1,
+        "vehicle_number": "MH12AB1234",
+        "vehicle_type": "CAR",
+        "parking_slot_id": 1,
+        "slot_number": "CAR-001",
+        "entry_time": "2026-09-25T09:14:02.086Z",
+        "exit_time": "2026-09-25T10:14:02.086Z",
+        "parking_fee": "20",
+        "status": "COMPLETED"
+    }
+]
+```
+
+### Frontend Refresh Behavior
+
+After a successful vehicle exit, the frontend refreshes:
+
+```text
+getParkingSlots()
+getActiveParkingSessions()
+getParkingSessionHistory()
+```
+
+This keeps all three dashboard sections synchronized with the backend database.
+
+The resulting lifecycle is:
+
+```text
+Vehicle parked
+      ↓
+ACTIVE session
+      ↓
+Vehicle exits
+      ↓
+Parking fee calculated
+      ↓
+Session becomes COMPLETED
+      ↓
+Parking slot becomes AVAILABLE
+      ↓
+Session disappears from Active Sessions
+      ↓
+Session appears in Parking Session History
+```
+
+### PowerShell Verification
+
+Backend API:
+
+```powershell
+Invoke-RestMethod `
+  -Uri "http://localhost:5000/api/parking-sessions/history" `
+  -Method GET
+```
+
+Frontend:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Verify that completed parking sessions are displayed in the Parking Session History section.
+
+Step 8.25 completed successfully. ✅
