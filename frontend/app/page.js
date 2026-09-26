@@ -74,6 +74,16 @@ export default function Home() {
         (slot) => slot.status === "OCCUPIED"
     ).length;
 
+    const selectedVehicle = vehicles.find(
+        (vehicle) => String(vehicle.id) === String(vehicleId)
+    );
+
+    const availableMatchingSlots = parkingSlots.filter(
+        (slot) =>
+            slot.status === "AVAILABLE" &&
+            slot.slot_type === selectedVehicle?.vehicle_type
+    );    
+
     const handleCreateParkingSession = async (event) => {
         event.preventDefault();
 
@@ -277,32 +287,56 @@ export default function Home() {
                                             Select a vehicle
                                         </option>
 
-                                        {vehicles.map((vehicle) => (
-                                            <option
-                                                key={vehicle.id}
-                                                value={vehicle.id}
-                                            >
-                                                {vehicle.vehicle_number} - {vehicle.vehicle_type}
-                                            </option>
-                                        ))}
+                                        {vehicles
+                                            .filter(
+                                                (vehicle) =>
+                                                    !activeSessions.some(
+                                                        (session) =>
+                                                            session.vehicle_number === vehicle.vehicle_number
+                                                    )
+                                            )
+                                            .map((vehicle) => (
+                                                <option
+                                                    key={vehicle.id}
+                                                    value={vehicle.id}
+                                                >
+                                                    {vehicle.vehicle_number} - {vehicle.vehicle_type}
+                                                </option>
+                                            ))}
                                     </select>
                                 </div>
 
                                 <div>
 
                                     <label className="block text-sm font-medium text-gray-700">
-                                        Slot ID
+                                        Parking Slot
                                     </label>
 
-                                    <input
-                                        type="number"
+                                    <select
                                         value={slotId}
                                         onChange={(event) =>
                                             setSlotId(event.target.value)
                                         }
-                                        placeholder="Example: 1"
-                                        className="mt-2 w-full rounded-md border border-gray-300 p-2"
-                                    />
+                                        disabled={!vehicleId}
+                                        className="mt-2 w-full rounded-md border border-gray-300 p-2 disabled:bg-gray-100 disabled:text-gray-400"
+                                    >
+                                        <option value="">
+                                            {!vehicleId
+                                                ? "Select vehicle first"
+                                                : availableMatchingSlots.length > 0
+                                                    ? "Select a parking slot"
+                                                    : `No available ${selectedVehicle?.vehicle_type} parking slots`}
+                                        </option>
+
+                                        {availableMatchingSlots.map((slot) => (
+                                            <option
+                                                key={slot.id}
+                                                value={slot.id}
+                                            >
+                                                {slot.slot_number} - {slot.slot_type}
+                                            </option>
+                                        ))}
+                                    </select>
 
                                 </div>
 
@@ -348,24 +382,24 @@ export default function Home() {
 
                                 <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
 
-                                    {vehicles.map((vehicle) => (
+                                {vehicles.map((vehicle) => (
 
-                                        <div
-                                            key={vehicle.id}
-                                            className="rounded-lg border border-gray-200 p-4"
-                                        >
+                                    <div
+                                        key={vehicle.id}
+                                        className="rounded-lg border border-gray-200 p-4"
+                                    >
 
-                                            <p className="font-semibold text-gray-900">
-                                                {vehicle.vehicle_number}
-                                            </p>
+                                        <p className="font-semibold text-gray-900">
+                                            {vehicle.vehicle_number}
+                                        </p>
 
-                                            <p className="mt-1 text-sm text-gray-600">
-                                                Type: {vehicle.vehicle_type}
-                                            </p>
+                                        <p className="mt-1 text-sm text-gray-600">
+                                            Type: {vehicle.vehicle_type}
+                                        </p>
 
-                                        </div>
+                                    </div>
 
-                                    ))}
+                                ))}
 
                                 </div>
 
