@@ -4397,3 +4397,587 @@ http://localhost:3000
 Verify that completed parking sessions are displayed in the Parking Session History section.
 
 Step 8.25 completed successfully. ✅
+
+### 8.27 Database-Level Protection for Active Parking Sessions
+
+After cleaning the development data, the database was verified to contain no vehicle with multiple ACTIVE parking sessions.
+
+Verification query:
+
+```sql
+SELECT
+    vehicle_id,
+    COUNT(*) AS active_session_count
+FROM parking_sessions
+WHERE status = 'ACTIVE'
+GROUP BY vehicle_id
+HAVING COUNT(*) > 1;
+```
+
+No rows were returned, confirming that there are currently no duplicate ACTIVE sessions per vehicle.
+
+The current active session was also verified:
+
+```text
+Vehicle: MH12AB1234
+Vehicle ID: 1
+Parking Slot: CAR-002
+Slot ID: 2
+Status: ACTIVE
+```
+
+PostgreSQL partial unique indexes were then added to enforce the business rules at the database level.
+
+One vehicle can have only one ACTIVE parking session:
+
+```sql
+CREATE UNIQUE INDEX idx_one_active_session_per_vehicle
+ON parking_sessions(vehicle_id)
+WHERE status = 'ACTIVE';
+```
+
+One parking slot can have only one ACTIVE parking session:
+
+```sql
+CREATE UNIQUE INDEX idx_one_active_session_per_slot
+ON parking_sessions(parking_slot_id)
+WHERE status = 'ACTIVE';
+```
+
+These are partial unique indexes because the uniqueness restriction applies only to ACTIVE sessions.
+
+Multiple COMPLETED sessions for the same vehicle are still allowed.
+
+The resulting rule is:
+
+```text
+Vehicle
+ ├── COMPLETED session
+ ├── COMPLETED session
+ ├── COMPLETED session
+ └── ACTIVE session       ← maximum one
+
+Parking Slot
+ └── ACTIVE session       ← maximum one
+```
+
+This provides database-level protection in addition to backend validation and transaction handling.
+
+The architecture now uses defense in depth:
+
+```text
+Frontend
+    ↓
+Backend validation
+    ↓
+Transaction + row locking
+    ↓
+PostgreSQL unique constraint
+```
+
+Step 8.27 completed after both indexes are successfully created and verified.
+
+### 8.28 Frontend Business Error Handling
+
+The backend returns HTTP 409 Conflict when a business rule prevents an operation.
+
+For example, attempting to park a vehicle that already has an ACTIVE parking session returns:
+
+409 Conflict
+
+Vehicle MH12AB1234 is already parked in slot CAR-002
+
+The frontend API layer preserves both:
+
+- Backend error message
+- HTTP status code
+
+The frontend then displays the error inside a red error section on the dashboard.
+
+Example:
+
+Unable to complete operation
+
+Vehicle MH12AB1234 is already parked in slot CAR-002
+
+The dashboard remains visible and usable after the error.
+
+The user can dismiss the error using the close button.
+
+This prevents expected business/API errors from being treated as application crashes.
+
+The flow is:
+
+User Action
+    ↓
+Frontend API request
+    ↓
+Backend validation
+    ↓
+HTTP 409 Conflict
+    ↓
+Frontend API layer
+    ↓
+Error object
+    ↓
+Dashboard error section
+    ↓
+User remains on dashboard
+
+Important HTTP status categories currently used:
+
+400 → Invalid request
+404 → Resource not found
+409 → Business/data conflict
+500 → Unexpected server/application failure
+
+The backend/database remain the source of truth.
+
+Frontend validation and error handling are primarily for user experience.
+
+Step 8.28 completed successfully.
+
+### 8.29 PostgreSQL Unique Constraint Error Handling
+
+Database-level protection was added for ACTIVE parking sessions.
+
+The database prevents:
+
+- One vehicle from having multiple ACTIVE parking sessions
+- One parking slot from having multiple ACTIVE parking sessions
+
+The PostgreSQL partial unique indexes are:
+
+    idx_one_active_session_per_vehicle
+    idx_one_active_session_per_slot
+
+If PostgreSQL rejects an operation because of a unique constraint violation, PostgreSQL returns error code:
+
+    23505
+
+The centralized backend error handler detects this error code and converts it into:
+
+    HTTP 409 Conflict
+
+The backend does not expose the raw PostgreSQL error to the frontend.
+
+Instead, it returns a controlled API response:
+
+    {
+        "error": "Parking session conflicts with an existing active session"
+    }
+
+The flow is:
+
+    Database operation
+        ↓
+    PostgreSQL unique constraint
+        ↓
+    PostgreSQL error code 23505
+        ↓
+    Centralized error handler
+        ↓
+    HTTP 409 Conflict
+        ↓
+    Frontend error handling
+        ↓
+    Red error section
+
+This provides database-level defense in depth.
+
+Application-level validation remains responsible for providing specific business messages when possible.
+
+The database remains the final enforcement layer.
+
+Step 8.29 implemented.
+
+
+## 9. Vehicle Management APIs
+
+### 9.1 Get All Vehicles API
+
+A Vehicle API was introduced so that the frontend does not need to rely on manually entered vehicle IDs.
+
+The first Vehicle API is:
+
+    GET /api/vehicles
+
+The request flow is:
+
+    Next.js / API Client
+        ↓
+    GET /api/vehicles
+        ↓
+    Express Route
+        ↓
+    Vehicle Controller
+        ↓
+    Vehicle Service
+        ↓
+    PostgreSQL
+        ↓
+    vehicles table
+        ↓
+    Vehicle Service
+        ↓
+    Vehicle Controller
+        ↓
+    JSON response
+
+The backend follows the existing layered architecture:
+
+    Route
+      ↓
+    Controller
+      ↓
+    Service
+      ↓
+    Database
+
+The Vehicle Service retrieves:
+
+- id
+- user_id
+- vehicle_number
+- vehicle_type
+- created_at
+
+The vehicles are ordered by ID.
+
+At this stage authentication and user-specific vehicle ownership have not yet been implemented.
+
+Therefore the API currently retrieves all vehicles.
+
+User-specific vehicle filtering will be introduced when authentication and authorization are implemented.
+
+Example endpoint:
+
+    GET http://localhost:5000/api/vehicles
+
+Example response:
+
+    [
+        {
+            "id": 1,
+            "user_id": 1,
+            "vehicle_number": "MH12AB1234",
+            "vehicle_type": "CAR",
+            "created_at": "..."
+        }
+    ]
+
+The backend remains the source of truth.
+
+The frontend will later use this API to provide a business-level vehicle selection instead of requiring the user to manually enter a vehicle ID.
+
+### PowerShell Testing
+
+The Vehicle API can be tested using:
+
+    Invoke-RestMethod `
+      -Uri "http://localhost:5000/api/vehicles" `
+      -Method GET
+
+### 9.2 Create Vehicle API
+
+The Vehicle API was extended to support creating new vehicles.
+
+Endpoint:
+
+    POST /api/vehicles
+
+Request body:
+
+    {
+        "userId": 1,
+        "vehicleNumber": "MH14XY5678",
+        "vehicleType": "CAR"
+    }
+
+The request flow is:
+
+    POST /api/vehicles
+        ↓
+    Validation Middleware
+        ↓
+    Vehicle Controller
+        ↓
+    Vehicle Service
+        ↓
+    PostgreSQL
+        ↓
+    vehicles table
+        ↓
+    Created Vehicle
+        ↓
+    HTTP 201
+
+Backend validation checks:
+
+- userId is required
+- userId must be a positive integer
+- vehicleNumber is required
+- vehicleNumber must be a non-empty string
+- vehicleType is required
+- vehicleType must be CAR or BIKE
+
+Vehicle numbers are normalized before storage:
+
+    trim()
+        ↓
+    uppercase
+        ↓
+    PostgreSQL
+
+For example:
+
+    mh14xy5678
+
+becomes:
+
+    MH14XY5678
+
+The database remains responsible for enforcing uniqueness of vehicle numbers.
+
+If a duplicate vehicle number is detected, the service converts the PostgreSQL unique constraint error into:
+
+    HTTP 409 Conflict
+
+Example:
+
+    Vehicle MH14XY5678 already exists
+
+Successful creation returns:
+
+    HTTP 201 Created
+
+Example response:
+
+    {
+        "id": 2,
+        "user_id": 1,
+        "vehicle_number": "MH14XY5678",
+        "vehicle_type": "CAR",
+        "created_at": "..."
+    }
+#### PowerShell Testing
+
+Create a vehicle:
+
+    Invoke-RestMethod `
+      -Uri "http://localhost:5000/api/vehicles" `
+      -Method POST `
+      -ContentType "application/json" `
+      -Body '{"userId":1,"vehicleNumber":"MH14XY5678","vehicleType":"CAR"}'
+
+Get all vehicles:
+
+    Invoke-RestMethod `
+      -Uri "http://localhost:5000/api/vehicles" `
+      -Method GET
+
+Test missing vehicle type:
+
+    Invoke-RestMethod `
+      -Uri "http://localhost:5000/api/vehicles" `
+      -Method POST `
+      -ContentType "application/json" `
+      -Body '{"userId":1,"vehicleNumber":"MH15AA1111"}'
+
+Test invalid vehicle type:
+
+    Invoke-RestMethod `
+      -Uri "http://localhost:5000/api/vehicles" `
+      -Method POST `
+      -ContentType "application/json" `
+      -Body '{"userId":1,"vehicleNumber":"MH15AA1111","vehicleType":"TRUCK"}'
+
+Test duplicate vehicle:
+
+    Invoke-RestMethod `
+      -Uri "http://localhost:5000/api/vehicles" `
+      -Method POST `
+      -ContentType "application/json" `
+      -Body '{"userId":1,"vehicleNumber":"MH14XY5678","vehicleType":"CAR"}'
+
+### 9.4 Frontend Vehicle API Layer
+
+The Next.js frontend was extended with a Vehicle API function.
+
+The function was added to:
+
+    frontend/lib/api.js
+
+Function:
+
+    getVehicles()
+
+It calls:
+
+    GET /api/vehicles
+
+The frontend API layer now provides:
+
+    Next.js page
+        ↓
+    getVehicles()
+        ↓
+    GET /api/vehicles
+        ↓
+    Node.js / Express
+        ↓
+    Vehicle Controller
+        ↓
+    Vehicle Service
+        ↓
+    PostgreSQL
+
+The API URL continues to use the frontend environment variable:
+
+    NEXT_PUBLIC_API_BASE_URL
+
+Therefore the frontend does not hardcode the complete backend URL inside the page component.
+
+At this stage the function has been added to the API layer.
+
+The next step is to call getVehicles() from the dashboard and store the returned vehicles in React state.
+
+### 9.5 Display Vehicles in the Frontend
+
+The Next.js dashboard was updated to display vehicles retrieved from the backend Vehicle API.
+
+The dashboard calls:
+
+    getVehicles()
+
+which internally calls:
+
+    GET /api/vehicles
+
+The returned vehicles are stored in React state:
+
+    vehicles
+
+The dashboard temporarily displays:
+
+- Vehicle number
+- Vehicle type
+
+Example:
+
+    MH12AB1234
+    Type: CAR
+
+At this stage the Vehicle ID field in the Park Vehicle form is still present.
+
+The vehicle display was added first to verify the complete frontend-to-backend flow before replacing the raw Vehicle ID input with a business-level vehicle selection.
+
+The flow is now:
+
+    PostgreSQL
+        ↓
+    GET /api/vehicles
+        ↓
+    frontend/lib/api.js
+        ↓
+    getVehicles()
+        ↓
+    page.js
+        ↓
+    vehicles state
+        ↓
+    Vehicles UI
+
+    ### 9.6 Vehicle List Verification
+
+The vehicle list was successfully displayed on the Next.js dashboard.
+
+The frontend retrieves vehicle data through:
+
+    GET /api/vehicles
+
+The dashboard successfully displays the vehicle number and vehicle type.
+
+This confirms the complete frontend-to-backend vehicle retrieval flow:
+
+    PostgreSQL
+        ↓
+    vehicles table
+        ↓
+    Vehicle Service
+        ↓
+    Vehicle Controller
+        ↓
+    GET /api/vehicles
+        ↓
+    frontend/lib/api.js
+        ↓
+    getVehicles()
+        ↓
+    React state
+        ↓
+    Dashboard
+
+The current Park Vehicle form still accepts a numeric Vehicle ID.
+
+The next improvement is to replace the raw Vehicle ID input with a vehicle dropdown.
+
+The user will see business-level information such as:
+
+    MH12AB1234 - CAR
+
+while the frontend will continue sending the corresponding database ID to the backend.
+
+### 9.7 Replace Vehicle ID Input with Vehicle Dropdown
+
+The raw Vehicle ID input in the Park Vehicle form was replaced with a vehicle dropdown.
+
+Previously the user had to enter:
+
+    Vehicle ID: 1
+
+The frontend now retrieves vehicles from:
+
+    GET /api/vehicles
+
+and displays them as business-level options.
+
+Example:
+
+    MH12AB1234 - CAR
+    MH14XY5678 - CAR
+
+The dropdown uses the vehicle database ID as the option value.
+
+For example:
+
+    Display value:
+    MH12AB1234 - CAR
+
+    Internal value:
+    1
+
+When the user selects a vehicle, the existing parking-session flow continues to send the vehicle ID to the backend.
+
+The frontend therefore separates:
+
+    User-facing information
+        ↓
+    Vehicle number + vehicle type
+
+from:
+
+    Backend identifier
+        ↓
+    Vehicle ID
+
+The backend API contract has not changed.
+
+The parking-session API still receives:
+
+    vehicleId
+    slotId
+
+The Slot ID field remains a numeric input for now.
+
+The next step is to replace the raw Slot ID input with a slot dropdown.

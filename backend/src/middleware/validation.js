@@ -42,8 +42,61 @@ const validateSessionId = (req, res, next) => {
     next();
 };
 
+const validateCreateVehicle = (req, res, next) => {
+    const { userId, vehicleNumber, vehicleType } = req.body;
+
+    if (
+        userId === undefined ||
+        vehicleNumber === undefined ||
+        vehicleType === undefined
+    ) {
+        const error = new Error(
+            "userId, vehicleNumber and vehicleType are required"
+        );
+
+        error.statusCode = 400;
+
+        return next(error);
+    }
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+        const error = new Error(
+            "userId must be a positive integer"
+        );
+
+        error.statusCode = 400;
+
+        return next(error);
+    }
+
+    if (
+        typeof vehicleNumber !== "string" ||
+        vehicleNumber.trim().length === 0
+    ) {
+        const error = new Error(
+            "vehicleNumber must be a non-empty string"
+        );
+
+        error.statusCode = 400;
+
+        return next(error);
+    }
+
+    if (!["CAR", "BIKE"].includes(vehicleType)) {
+        const error = new Error(
+            "vehicleType must be CAR or BIKE"
+        );
+
+        error.statusCode = 400;
+
+        return next(error);
+    }
+
+    next();
+};
 
 module.exports = {
     validateCreateParkingSession,
-    validateSessionId
+    validateSessionId,
+    validateCreateVehicle
 };

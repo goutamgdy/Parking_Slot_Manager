@@ -6,6 +6,7 @@ import {
     getParkingSlots,
     getActiveParkingSessions,
     getParkingSessionHistory,
+    getVehicles,
     createParkingSession,
     exitParkingSession
 } from "../lib/api";
@@ -14,9 +15,10 @@ export default function Home() {
     const [parkingSlots, setParkingSlots] = useState([]);
     const [activeSessions, setActiveSessions] = useState([]);
     const [sessionHistory, setSessionHistory] = useState([]);
+    const [vehicles, setVehicles] = useState([]);   
 
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const [error, setError] = useState(null);
 
     const [vehicleId, setVehicleId] = useState("");
     const [slotId, setSlotId] = useState("");
@@ -29,19 +31,31 @@ export default function Home() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [slots, sessions, history] = await Promise.all([
+                setLoading(true);
+                setError(null);
+
+                const [
+                    slots,
+                    activeSessions,
+                    history,
+                    vehicles
+                ] = await Promise.all([
                     getParkingSlots(),
                     getActiveParkingSessions(),
-                    getParkingSessionHistory()
+                    getParkingSessionHistory(),
+                    getVehicles()
                 ]);
 
                 setParkingSlots(slots);
-                setActiveSessions(sessions);
+                setActiveSessions(activeSessions);
                 setSessionHistory(history);
+                setVehicles(vehicles);
 
             } catch (error) {
-                setError(error.message);
-
+                setError({
+                    message: error.message,
+                    status: error.status
+                });
             } finally {
                 setLoading(false);
             }
@@ -63,7 +77,7 @@ export default function Home() {
     const handleCreateParkingSession = async (event) => {
         event.preventDefault();
 
-        setError("");
+        setError(null);
         setSuccessMessage("");
         setExitMessage("");
         setCreatingSession(true);
@@ -91,8 +105,12 @@ export default function Home() {
             setParkingSlots(updatedSlots);
             setActiveSessions(updatedSessions);
             setSessionHistory(updatedHistory);
+
         } catch (error) {
-            setError(error.message);
+            setError({
+                message: error.message,
+                status: error.status
+            });
 
         } finally {
             setCreatingSession(false);
@@ -100,7 +118,7 @@ export default function Home() {
     };
 
     const handleExitParkingSession = async (sessionId) => {
-        setError("");
+        setError(null);
         setSuccessMessage("");
         setExitMessage("");
         setExitingSessionId(sessionId);
@@ -112,17 +130,22 @@ export default function Home() {
                 `Parking session ${session.id} completed successfully. Parking fee: ₹${session.parking_fee}`
             );
 
-            const [updatedSlots, updatedSessions] =
+            const [updatedSlots, updatedSessions, updatedHistory] =
                 await Promise.all([
                     getParkingSlots(),
-                    getActiveParkingSessions()
+                    getActiveParkingSessions(),
+                    getParkingSessionHistory()
                 ]);
 
             setParkingSlots(updatedSlots);
             setActiveSessions(updatedSessions);
+            setSessionHistory(updatedHistory);
 
         } catch (error) {
-            setError(error.message);
+            setError({
+                message: error.message,
+                status: error.status
+            });
 
         } finally {
             setExitingSessionId(null);
@@ -149,12 +172,38 @@ export default function Home() {
                 )}
 
                 {error && (
-                    <p className="mt-6 text-red-600">
-                        Error: {error}
-                    </p>
+                    <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4">
+
+                        <div className="flex items-start justify-between gap-4">
+
+                            <div>
+
+                                <p className="font-semibold text-red-800">
+                                    {error.status === 409
+                                        ? "Unable to complete operation"
+                                        : "Something went wrong"}
+                                </p>
+
+                                <p className="mt-1 text-red-700">
+                                    {error.message}
+                                </p>
+
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setError(null)}
+                                className="font-semibold text-red-700"
+                            >
+                                ×
+                            </button>
+
+                        </div>
+
+                    </div>
                 )}
 
-                {!loading && !error && (
+                {!loading && (
                     <>
 
                         {/* Dashboard Statistics */}
@@ -162,6 +211,7 @@ export default function Home() {
                         <div className="mt-8 grid gap-6 md:grid-cols-3">
 
                             <div className="rounded-lg bg-white p-6 shadow">
+
                                 <h2 className="text-lg font-semibold text-gray-800">
                                     Total Slots
                                 </h2>
@@ -169,9 +219,11 @@ export default function Home() {
                                 <p className="mt-3 text-3xl font-bold text-gray-900">
                                     {totalSlots}
                                 </p>
+
                             </div>
 
                             <div className="rounded-lg bg-white p-6 shadow">
+
                                 <h2 className="text-lg font-semibold text-gray-800">
                                     Available
                                 </h2>
@@ -179,9 +231,11 @@ export default function Home() {
                                 <p className="mt-3 text-3xl font-bold text-green-600">
                                     {availableSlots}
                                 </p>
+
                             </div>
 
                             <div className="rounded-lg bg-white p-6 shadow">
+
                                 <h2 className="text-lg font-semibold text-gray-800">
                                     Occupied
                                 </h2>
@@ -189,6 +243,7 @@ export default function Home() {
                                 <p className="mt-3 text-3xl font-bold text-red-600">
                                     {occupiedSlots}
                                 </p>
+
                             </div>
 
                         </div>
@@ -208,21 +263,33 @@ export default function Home() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">
-                                        Vehicle ID
+                                        Vehicle
                                     </label>
 
-                                    <input
-                                        type="number"
+                                    <select
                                         value={vehicleId}
                                         onChange={(event) =>
                                             setVehicleId(event.target.value)
                                         }
-                                        placeholder="Example: 1"
                                         className="mt-2 w-full rounded-md border border-gray-300 p-2"
-                                    />
+                                    >
+                                        <option value="">
+                                            Select a vehicle
+                                        </option>
+
+                                        {vehicles.map((vehicle) => (
+                                            <option
+                                                key={vehicle.id}
+                                                value={vehicle.id}
+                                            >
+                                                {vehicle.vehicle_number} - {vehicle.vehicle_type}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div>
+
                                     <label className="block text-sm font-medium text-gray-700">
                                         Slot ID
                                     </label>
@@ -236,9 +303,11 @@ export default function Home() {
                                         placeholder="Example: 1"
                                         className="mt-2 w-full rounded-md border border-gray-300 p-2"
                                     />
+
                                 </div>
 
                                 <div className="flex items-end">
+
                                     <button
                                         type="submit"
                                         disabled={creatingSession}
@@ -248,6 +317,7 @@ export default function Home() {
                                             ? "Parking..."
                                             : "Park Vehicle"}
                                     </button>
+
                                 </div>
 
                             </form>
@@ -256,6 +326,49 @@ export default function Home() {
                                 <p className="mt-4 text-green-600">
                                     {successMessage}
                                 </p>
+                            )}
+
+                        </div>
+
+                        {/* Vehicles */}
+
+                        <div className="mt-10 rounded-lg bg-white p-6 shadow">
+
+                            <h2 className="text-xl font-semibold text-gray-800">
+                                Vehicles
+                            </h2>
+
+                            {vehicles.length === 0 ? (
+
+                                <p className="mt-4 text-gray-600">
+                                    No vehicles found.
+                                </p>
+
+                            ) : (
+
+                                <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+
+                                    {vehicles.map((vehicle) => (
+
+                                        <div
+                                            key={vehicle.id}
+                                            className="rounded-lg border border-gray-200 p-4"
+                                        >
+
+                                            <p className="font-semibold text-gray-900">
+                                                {vehicle.vehicle_number}
+                                            </p>
+
+                                            <p className="mt-1 text-sm text-gray-600">
+                                                Type: {vehicle.vehicle_type}
+                                            </p>
+
+                                        </div>
+
+                                    ))}
+
+                                </div>
+
                             )}
 
                         </div>
@@ -285,6 +398,7 @@ export default function Home() {
                                             <div className="grid gap-4 md:grid-cols-4">
 
                                                 <div>
+
                                                     <p className="text-sm text-gray-500">
                                                         Vehicle
                                                     </p>
@@ -292,9 +406,11 @@ export default function Home() {
                                                     <p className="font-semibold text-gray-900">
                                                         {session.vehicle_number}
                                                     </p>
+
                                                 </div>
 
                                                 <div>
+
                                                     <p className="text-sm text-gray-500">
                                                         Slot
                                                     </p>
@@ -302,9 +418,11 @@ export default function Home() {
                                                     <p className="font-semibold text-gray-900">
                                                         {session.slot_number}
                                                     </p>
+
                                                 </div>
 
                                                 <div>
+
                                                     <p className="text-sm text-gray-500">
                                                         Entry Time
                                                     </p>
@@ -314,9 +432,11 @@ export default function Home() {
                                                             session.entry_time
                                                         ).toLocaleString()}
                                                     </p>
+
                                                 </div>
 
                                                 <div className="flex items-end">
+
                                                     <button
                                                         type="button"
                                                         onClick={() =>
@@ -335,6 +455,7 @@ export default function Home() {
                                                             ? "Exiting..."
                                                             : "Exit Vehicle"}
                                                     </button>
+
                                                 </div>
 
                                             </div>
@@ -353,6 +474,7 @@ export default function Home() {
                             )}
 
                         </div>
+
                         {/* Parking Session History */}
 
                         <div className="mt-10 rounded-lg bg-white p-6 shadow">
@@ -371,6 +493,7 @@ export default function Home() {
                                     <table className="min-w-full border-collapse">
 
                                         <thead>
+
                                             <tr className="border-b border-gray-200 text-left">
 
                                                 <th className="px-4 py-3 text-sm font-semibold text-gray-700">
@@ -398,6 +521,7 @@ export default function Home() {
                                                 </th>
 
                                             </tr>
+
                                         </thead>
 
                                         <tbody>
@@ -453,6 +577,7 @@ export default function Home() {
                             )}
 
                         </div>
+
                         {/* Parking Slots */}
 
                         <div className="mt-10 rounded-lg bg-white p-6 shadow">

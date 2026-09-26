@@ -13,9 +13,13 @@ const createParkingSession = async (vehicleId, slotId) => {
         // 1. Check vehicle
         const vehicleResult = await client.query(
             `
-            SELECT id, vehicle_number, vehicle_type
+            SELECT
+                id,
+                vehicle_number,
+                vehicle_type
             FROM vehicles
             WHERE id = $1
+            FOR UPDATE
             `,
             [vehicleId]
         );
@@ -40,6 +44,34 @@ const createParkingSession = async (vehicleId, slotId) => {
             `,
             [slotId]
         );
+
+        const activeSessionResult = await client.query(
+            `
+            SELECT
+                ps.id,
+                ps.parking_slot_id,
+                p.slot_number
+            FROM parking_sessions ps
+            JOIN parking_slots p
+                ON ps.parking_slot_id = p.id
+            WHERE ps.vehicle_id = $1
+            AND ps.status = 'ACTIVE'
+            LIMIT 1
+            `,
+            [vehicleId]
+        );
+
+        if (activeSessionResult.rows.length > 0) {
+            const activeSession = activeSessionResult.rows[0];
+
+            const error = new Error(
+                `Vehicle ${vehicle.vehicle_number} is already parked in slot ${activeSession.slot_number}`
+            );
+
+            error.statusCode = 409;
+
+            throw error;
+        }
 
         if (slotResult.rows.length === 0) {
             throw new Error("Parking slot not found");

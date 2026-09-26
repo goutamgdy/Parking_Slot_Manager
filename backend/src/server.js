@@ -12,6 +12,7 @@ const logger = require("./utils/logger");
 const errorHandler = require("./middleware/errorHandler");
 const parkingSessionRoutes = require("./routes/parkingSessionRoutes");
 const parkingSlotRoutes = require("./routes/parkingSlotRoutes");
+const vehicleRoutes = require("./routes/vehicleRoutes");
 
 const app = express();
 const PORT = config.server.port;
@@ -94,6 +95,7 @@ app.get("/api/health", async (req, res) => {
 
 app.use("/api/parking-slots", parkingSlotRoutes);
 app.use("/api/parking-sessions", parkingSessionRoutes);
+app.use("/api/vehicles", vehicleRoutes);
 
 app.use(errorHandler);
 
