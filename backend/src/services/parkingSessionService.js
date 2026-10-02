@@ -1,6 +1,6 @@
 const pool = require("../db");
 const logger = require("../utils/logger");
-const createParkingSession = async (vehicleId, slotId) => {
+const createParkingSession = async (userId, vehicleId, slotId)  => {
     logger.info(
         `Parking session creation started vehicleId=${vehicleId} slotId=${slotId}`
     );
@@ -19,9 +19,10 @@ const createParkingSession = async (vehicleId, slotId) => {
                 vehicle_type
             FROM vehicles
             WHERE id = $1
+            AND user_id = $2
             FOR UPDATE
             `,
-            [vehicleId]
+            [vehicleId, userId]
         );
 
         if (vehicleResult.rows.length === 0) {
@@ -53,7 +54,7 @@ const createParkingSession = async (vehicleId, slotId) => {
                 p.slot_number
             FROM parking_sessions ps
             JOIN parking_slots p
-                ON ps.parking_slot_id = p.id
+                ON ps.parking_slot_id = p.id    
             WHERE ps.vehicle_id = $1
             AND ps.status = 'ACTIVE'
             LIMIT 1
@@ -157,7 +158,7 @@ const createParkingSession = async (vehicleId, slotId) => {
 };
 
 
-const exitParkingSession = async (sessionId) => {
+const exitParkingSession = async (userId, sessionId) => {
     logger.info(
         `Parking session exit started sessionId=${sessionId}`
     );
@@ -171,18 +172,21 @@ const exitParkingSession = async (sessionId) => {
         const sessionResult = await client.query(
             `
             SELECT
-                id,
-                vehicle_id,
-                parking_slot_id,
-                entry_time,
-                exit_time,
-                parking_fee,
-                status
-            FROM parking_sessions
-            WHERE id = $1
+                ps.id,
+                ps.vehicle_id,
+                ps.parking_slot_id,
+                ps.entry_time,
+                ps.exit_time,
+                ps.parking_fee,
+                ps.status
+            FROM parking_sessions ps
+            JOIN vehicles v
+                ON ps.vehicle_id = v.id
+            WHERE ps.id = $1
+            AND v.user_id = $2
             FOR UPDATE
             `,
-            [sessionId]
+            [sessionId, userId]
         );
 
         if (sessionResult.rows.length === 0) {
@@ -282,7 +286,7 @@ const exitParkingSession = async (sessionId) => {
     }
 };
 
-const getActiveParkingSessions = async () => {
+const getActiveParkingSessions = async (userId) => {
     const result = await pool.query(
         `
         SELECT
@@ -300,14 +304,16 @@ const getActiveParkingSessions = async () => {
         JOIN parking_slots p
             ON ps.parking_slot_id = p.id
         WHERE ps.status = 'ACTIVE'
+        AND v.user_id = $1
         ORDER BY ps.entry_time
-        `
+        `,
+        [userId]
     );
 
     return result.rows;
 };
 
-const getParkingSessionHistory = async () => {
+const getParkingSessionHistory = async (userId) => {
     const result = await pool.query(
         `
         SELECT
@@ -327,8 +333,10 @@ const getParkingSessionHistory = async () => {
         JOIN parking_slots p
             ON ps.parking_slot_id = p.id
         WHERE ps.status = 'COMPLETED'
+          AND v.user_id = $1
         ORDER BY ps.exit_time DESC
-        `
+        `,
+        [userId]
     );
 
     return result.rows;

@@ -1,6 +1,6 @@
 const pool = require("../db");
 
-const getAllVehicles = async () => {
+const getVehiclesByUser = async (userId) => {
     const result = await pool.query(
         `
         SELECT
@@ -10,8 +10,10 @@ const getAllVehicles = async () => {
             vehicle_type,
             created_at
         FROM vehicles
+        WHERE user_id = $1
         ORDER BY id
-        `
+        `,
+        [userId]
     );
 
     return result.rows;
@@ -64,6 +66,6 @@ const createVehicle = async (
 };
 
 module.exports = {
-    getAllVehicles,
+    getVehiclesByUser,
     createVehicle
 };

@@ -3,7 +3,9 @@ const parkingSessionService = require("../services/parkingSessionService");
 const getActiveParkingSessions = async (req, res, next) => {
     try {
         const sessions =
-            await parkingSessionService.getActiveParkingSessions();
+            await parkingSessionService.getActiveParkingSessions(
+                req.user.userId
+            );
 
         res.status(200).json(sessions);
 
@@ -18,6 +20,7 @@ const createParkingSession = async (req, res, next) => {
 
         const session =
             await parkingSessionService.createParkingSession(
+                req.user.userId,
                 vehicleId,
                 slotId
             );
@@ -35,6 +38,7 @@ const exitParkingSession = async (req, res, next) => {
 
         const session =
             await parkingSessionService.exitParkingSession(
+                req.user.userId,
                 sessionId
             );
 
@@ -48,7 +52,9 @@ const exitParkingSession = async (req, res, next) => {
 const getParkingSessionHistory = async (req, res, next) => {
     try {
         const sessions =
-            await parkingSessionService.getParkingSessionHistory();
+            await parkingSessionService.getParkingSessionHistory(
+                req.user.userId
+            );
 
         res.status(200).json(sessions);
 

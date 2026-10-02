@@ -2,7 +2,10 @@ const vehicleService = require("../services/vehicleService");
 
 const getVehicles = async (req, res, next) => {
     try {
-        const vehicles = await vehicleService.getAllVehicles();
+        const vehicles =
+            await vehicleService.getVehiclesByUser(
+            req.user.userId
+        );
 
         res.status(200).json(vehicles);
 
@@ -14,14 +17,13 @@ const getVehicles = async (req, res, next) => {
 const createVehicle = async (req, res, next) => {
     try {
         const {
-            userId,
             vehicleNumber,
             vehicleType
         } = req.body;
 
         const vehicle =
             await vehicleService.createVehicle(
-                userId,
+                req.user.userId,
                 vehicleNumber,
                 vehicleType
             );

@@ -13,7 +13,18 @@ const errorHandler = require("./middleware/errorHandler");
 const parkingSessionRoutes = require("./routes/parkingSessionRoutes");
 const parkingSlotRoutes = require("./routes/parkingSlotRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
+const authRoutes = require("./routes/authRoutes");
+const parkingFacilityRoutes = require("./routes/parkingFacilityRoutes");
+const parkingAreaRoutes = require("./routes/parkingAreaRoutes");
+const adminUserRoutes =
+    require("./routes/adminUserRoutes");
 
+
+const adminVehicleRoutes =
+    require("./routes/adminVehicleRoutes");
+    
+const adminParkingSessionRoutes =
+    require("./routes/adminParkingSessionRoutes"); 
 const app = express();
 const PORT = config.server.port;
 
@@ -96,7 +107,29 @@ app.get("/api/health", async (req, res) => {
 app.use("/api/parking-slots", parkingSlotRoutes);
 app.use("/api/parking-sessions", parkingSessionRoutes);
 app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/auth", authRoutes);
+app.use(
+    "/api/parking-facilities",
+    parkingFacilityRoutes
+);
 
+app.use(
+    "/api/admin/users",
+    adminUserRoutes
+);
+
+app.use(
+    "/api/admin/vehicles",
+    adminVehicleRoutes
+);
+app.use(
+    "/api/parking-areas",
+    parkingAreaRoutes
+);
+app.use(
+    "/api/admin/parking-sessions",
+    adminParkingSessionRoutes
+);
 app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
