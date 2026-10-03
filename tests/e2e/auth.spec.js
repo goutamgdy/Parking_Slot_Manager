@@ -21,7 +21,7 @@ test("USER can register and login", async ({ page }) => {
     await page.getByRole("button", { name: "Login" }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByText(`Welcome, ${name}`)).toBeVisible();
+    await expect(page.getByText(`Welcome, ${name}`, { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
 });
 
