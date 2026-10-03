@@ -384,12 +384,15 @@ const updateAreaStatus = async (
         const areaResult = await client.query(
             `
             SELECT
-                id,
-                facility_id,
-                name,
-                status
-            FROM parking_areas
-            WHERE id = $1
+                pa.id,
+                pa.facility_id,
+                pa.name,
+                pa.status,
+                pf.status AS facility_status
+            FROM parking_areas pa
+            JOIN parking_facilities pf
+                ON pa.facility_id = pf.id
+            WHERE pa.id = $1
             FOR UPDATE
             `,
             [areaId]
@@ -407,6 +410,23 @@ const updateAreaStatus = async (
             throw error;
         }
 
+
+        // =================================================
+        // Facility lifecycle validation
+        // =================================================
+
+        const facilityStatus = areaResult.rows[0].facility_status;
+
+        if (
+            status === "ACTIVE" &&
+            facilityStatus !== "ACTIVE"
+        ) {
+            const error = new Error(
+                "Cannot activate area while its facility is inactive"
+            );
+            error.statusCode = 409;
+            throw error;
+        }
 
         // =================================================
         // Prevent deactivating occupied area
