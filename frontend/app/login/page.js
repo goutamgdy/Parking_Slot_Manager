@@ -22,12 +22,6 @@ export default function LoginPage() {
         try {
             const response = await login(email, password);
 
-            localStorage.setItem("token", response.token);
-            localStorage.setItem(
-                "user",
-                JSON.stringify(response.user)
-            );
-
             router.push(
                 response.user.role === "ADMIN"
                     ? "/admin"

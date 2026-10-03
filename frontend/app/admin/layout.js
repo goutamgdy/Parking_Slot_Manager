@@ -67,10 +67,19 @@ export default function AdminLayout({ children }) {
         };
     }, [router]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        router.replace("/login");
+    const handleLogout = async () => {
+        try {
+            await fetch(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/logout`,
+                {
+                    method: "POST",
+                    credentials: "include"
+                }
+            );
+        } finally {
+            localStorage.removeItem("user");
+            router.replace("/login");
+        }
     };
 
     const isActive = (path) => {

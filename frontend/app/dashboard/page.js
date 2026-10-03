@@ -42,16 +42,8 @@ export default function Home() {
 
 
     // Check authentication and load the current user from the backend.
-    // localStorage is only used to keep the token; identity/role is
-    // authoritative on the backend.
+    // The HttpOnly session cookie is authoritative for authentication.
     useEffect(() => {
-
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-            router.replace("/login");
-            return;
-        }
 
         const loadCurrentUser = async () => {
             try {
@@ -68,10 +60,6 @@ export default function Home() {
                 }
 
                 setUser(currentUser);
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(currentUser)
-                );
 
             } catch {
                 // apiRequest handles 401 and redirects to login.
@@ -85,12 +73,6 @@ export default function Home() {
 
     // Load dashboard data
     useEffect(() => {
-
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-            return;
-        }
 
         const fetchDashboardData = async () => {
 
@@ -257,7 +239,6 @@ export default function Home() {
 
     const handleLogout = () => {
 
-        localStorage.removeItem("token");
         localStorage.removeItem("user");
 
         router.push("/login");
