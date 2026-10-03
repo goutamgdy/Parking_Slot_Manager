@@ -28,12 +28,26 @@ const apiRequest = async (endpoint, options = {}) => {
         }
     );
 
-    const data = await response.json();
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+        ? await response.json()
+        : {};
 
     if (!response.ok) {
-        throw new Error(
+        if (response.status === 401 && typeof window !== "undefined") {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+
+            if (window.location.pathname !== "/login" && window.location.pathname !== "/register") {
+                window.location.replace("/login");
+            }
+        }
+
+        const error = new Error(
             data.error || "Something went wrong"
         );
+        error.status = response.status;
+        throw error;
     }
 
     return data;
