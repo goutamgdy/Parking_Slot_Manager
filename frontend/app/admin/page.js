@@ -2,79 +2,89 @@
 
 import Link from "next/link";
 
+const managementGroups = [
+    {
+        title: "Parking Management",
+        description: "Manage the physical parking structure from facility to individual slot.",
+        items: [
+            {
+                title: "Facilities",
+                description: "Create and manage parking facilities.",
+                buttonText: "Manage Facilities",
+                href: "/admin/facilities"
+            },
+            {
+                title: "Areas",
+                description: "Create areas inside active parking facilities and manage their capacity.",
+                buttonText: "Manage Areas",
+                href: "/admin/areas"
+            },
+            {
+                title: "Parking Slots",
+                description: "Create and manage individual CAR and BIKE parking slots.",
+                buttonText: "Manage Slots",
+                href: "/admin/slots"
+            },
+            {
+                title: "Parking Sessions",
+                description: "Monitor active and completed parking sessions across the system.",
+                buttonText: "Manage Sessions",
+                href: "/admin/sessions"
+            }
+        ]
+    },
+    {
+        title: "People & Vehicles",
+        description: "View users and the vehicles registered in the system.",
+        items: [
+            {
+                title: "Users",
+                description: "View registered users and their account information.",
+                buttonText: "Manage Users",
+                href: "/admin/users"
+            },
+            {
+                title: "Vehicles",
+                description: "View vehicles and their owners.",
+                buttonText: "View Vehicles",
+                href: "/admin/vehicles"
+            }
+        ]
+    }
+];
+
 export default function AdminDashboard() {
     return (
         <div>
-            <h1
-                style={{
-                    fontSize: "32px",
-                    fontWeight: "700",
-                    marginBottom: "10px"
-                }}
-            >
-                Admin Dashboard
-            </h1>
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900">
+                    Admin Dashboard
+                </h1>
+                <p className="mt-2 max-w-3xl text-gray-600">
+                    Manage the parking system using the hierarchy:
+                    Facility → Area → Slot.
+                </p>
+            </div>
 
-            <p
-                style={{
-                    color: "#4b6380",
-                    fontSize: "18px",
-                    marginBottom: "30px"
-                }}
-            >
-                Manage users, vehicles, parking facilities, areas, slots
-                and parking sessions.
-            </p>
+            <div className="space-y-10">
+                {managementGroups.map((group) => (
+                    <section key={group.title}>
+                        <div className="mb-4">
+                            <h2 className="text-xl font-bold text-gray-900">
+                                {group.title}
+                            </h2>
+                            <p className="mt-1 text-sm text-gray-600">
+                                {group.description}
+                            </p>
+                        </div>
 
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                        "repeat(3, minmax(0, 1fr))",
-                    gap: "28px"
-                }}
-            >
-                <AdminCard
-                    title="Users"
-                    description="View and manage registered users."
-                    buttonText="Manage Users"
-                    href="/admin/users"
-                />
-
-                <AdminCard
-                    title="Vehicles"
-                    description="View vehicles and their owners."
-                    buttonText="View Vehicles"
-                    href="/admin/vehicles"
-                />
-
-                <AdminCard
-                    title="Facilities"
-                    description="Manage parking facilities."
-                    buttonText="Manage Facilities"
-                    href="/admin/facilities"
-                />
-
-                <AdminCard
-                    title="Areas"
-                    description="Manage areas inside parking facilities."
-                    buttonText="Manage Areas"
-                    href="/admin/areas"
-                />
-
-                <AdminCard
-                    title="Parking Slots"
-                    description="Add and manage individual parking slots."
-                    buttonText="Manage Slots"
-                    href="/admin/slots"
-                />
-
-                <AdminCard
-                    title="Parking Sessions"
-                    description="Monitor and manage all parking sessions."
-                    buttonText="Manage Sessions"
-                    href="/admin/sessions"
-                />
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            {group.items.map((item) => (
+                                <AdminCard key={item.href} {...item} />
+                            ))}
+                        </div>
+                    </section>
+                ))}
             </div>
         </div>
     );
@@ -87,57 +97,23 @@ function AdminCard({
     href
 }) {
     return (
-        <div
-            style={{
-                background: "#ffffff",
-                borderRadius: "12px",
-                padding: "30px",
-                minHeight: "170px",
-                boxShadow:
-                    "0 2px 8px rgba(0, 0, 0, 0.08)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between"
-            }}
-        >
+        <article className="flex min-h-44 flex-col justify-between rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <div>
-                <h2
-                    style={{
-                        fontSize: "22px",
-                        fontWeight: "700",
-                        marginBottom: "14px"
-                    }}
-                >
+                <h3 className="text-lg font-bold text-gray-900">
                     {title}
-                </h2>
+                </h3>
 
-                <p
-                    style={{
-                        color: "#4b6380",
-                        fontSize: "16px",
-                        lineHeight: "1.5",
-                        marginBottom: "20px"
-                    }}
-                >
+                <p className="mt-2 text-sm leading-6 text-gray-600">
                     {description}
                 </p>
             </div>
 
             <Link
                 href={href}
-                style={{
-                    display: "inline-block",
-                    width: "fit-content",
-                    background: "#000000",
-                    color: "#ffffff",
-                    padding: "11px 18px",
-                    borderRadius: "7px",
-                    fontWeight: "700",
-                    textDecoration: "none"
-                }}
+                className="mt-6 inline-flex w-fit rounded-md bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
             >
                 {buttonText}
             </Link>
-        </div>
+        </article>
     );
 }
