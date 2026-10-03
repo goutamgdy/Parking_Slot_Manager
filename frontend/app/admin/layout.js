@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { getCurrentUser } from "../../lib/api";
 
 export default function AdminLayout({ children }) {
 
@@ -13,36 +14,34 @@ export default function AdminLayout({ children }) {
 
 
     useEffect(() => {
+        let cancelled = false;
 
-        const token = localStorage.getItem("token");
-        const storedUser = localStorage.getItem("user");
+        const verifyAdmin = async () => {
+            try {
+                const response = await getCurrentUser();
+                const currentUser = response.user;
 
-        if (!token || !storedUser) {
-            router.replace("/login");
-            return;
-        }
+                if (currentUser.role !== "ADMIN") {
+                    router.replace("/dashboard");
+                    return;
+                }
 
-        try {
-
-            const parsedUser = JSON.parse(storedUser);
-
-            if (parsedUser.role !== "ADMIN") {
-                router.replace("/dashboard");
-                return;
+                if (!cancelled) {
+                    setUser(currentUser);
+                    setCheckingAuth(false);
+                }
+            } catch {
+                if (!cancelled) {
+                    setCheckingAuth(false);
+                }
             }
+        };
 
-            setUser(parsedUser);
-            setCheckingAuth(false);
+        verifyAdmin();
 
-        } catch {
-
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-
-            router.replace("/login");
-
-        }
-
+        return () => {
+            cancelled = true;
+        };
     }, [router]);
 
 
