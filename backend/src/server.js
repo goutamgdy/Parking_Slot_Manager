@@ -2,41 +2,60 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 
 const pool = require("./db");
 
 const config = require("./config");
-
+const validateEnvironment = require("./utils/env");
 const logger = require("./utils/logger");
 
 const errorHandler = require("./middleware/errorHandler");
+const { apiLimiter } = require("./middleware/rateLimiter");
+
 const parkingSessionRoutes = require("./routes/parkingSessionRoutes");
 const parkingSlotRoutes = require("./routes/parkingSlotRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const authRoutes = require("./routes/authRoutes");
 const parkingFacilityRoutes = require("./routes/parkingFacilityRoutes");
 const parkingAreaRoutes = require("./routes/parkingAreaRoutes");
-const adminUserRoutes =
-    require("./routes/adminUserRoutes");
+const adminUserRoutes = require("./routes/adminUserRoutes");
+const adminVehicleRoutes = require("./routes/adminVehicleRoutes");
+const adminParkingSessionRoutes = require("./routes/adminParkingSessionRoutes");
 
+validateEnvironment();
 
-const adminVehicleRoutes =
-    require("./routes/adminVehicleRoutes");
-    
-const adminParkingSessionRoutes =
-    require("./routes/adminParkingSessionRoutes"); 
 const app = express();
 const PORT = config.server.port;
 
+app.disable("x-powered-by");
+
+app.use(
+    helmet({
+        strictTransportSecurity:
+            process.env.NODE_ENV === "production"
+                ? undefined
+                : false
+    })
+);
+
+const allowedOrigin =
+    process.env.FRONTEND_URL || "http://localhost:3000";
+
 app.use(
     cors({
-        origin: process.env.FRONTEND_URL || "http://localhost:3000",
+        origin: (origin, callback) => {
+            if (!origin || origin === allowedOrigin) {
+                return callback(null, true);
+            }
+
+            return callback(null, false);
+        },
         credentials: true
     })
 );
 
-
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 
 app.get("/", (req, res) => {
     logger.info("GET / - API root requested");
@@ -54,7 +73,6 @@ app.get("/api/health/live", (req, res) => {
     });
 });
 
-
 app.get("/api/health/ready", async (req, res) => {
     try {
         await pool.query("SELECT 1");
@@ -67,9 +85,7 @@ app.get("/api/health/ready", async (req, res) => {
             status: "READY",
             database: "CONNECTED"
         });
-
     } catch (error) {
-
         logger.error(
             `GET /api/health/ready - Application is not ready: ${error.message}`
         );
@@ -92,7 +108,6 @@ app.get("/api/health", async (req, res) => {
             database: "CONNECTED",
             time: result.rows[0].now
         });
-
     } catch (error) {
         logger.error(
             `GET /api/health - Database connection failed: ${error.message}`
@@ -105,6 +120,18 @@ app.get("/api/health", async (req, res) => {
     }
 });
 
+app.use(
+    "/api",
+    apiLimiter,
+    (req, res, next) => {
+        if (req.path.startsWith("/health")) {
+            return next("route");
+        }
+
+        next();
+    }
+);
+
 app.use("/api/parking-slots", parkingSlotRoutes);
 app.use("/api/parking-sessions", parkingSessionRoutes);
 app.use("/api/vehicles", vehicleRoutes);
@@ -113,24 +140,14 @@ app.use(
     "/api/parking-facilities",
     parkingFacilityRoutes
 );
-
-app.use(
-    "/api/admin/users",
-    adminUserRoutes
-);
-
-app.use(
-    "/api/admin/vehicles",
-    adminVehicleRoutes
-);
-app.use(
-    "/api/parking-areas",
-    parkingAreaRoutes
-);
+app.use("/api/admin/users", adminUserRoutes);
+app.use("/api/admin/vehicles", adminVehicleRoutes);
+app.use("/api/parking-areas", parkingAreaRoutes);
 app.use(
     "/api/admin/parking-sessions",
     adminParkingSessionRoutes
 );
+
 app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
@@ -149,9 +166,7 @@ const shutdown = async (signal) => {
             logger.info("Database connection pool closed");
 
             process.exit(0);
-
         } catch (error) {
-
             logger.error(
                 `Error closing database pool: ${error.message}`
             );
