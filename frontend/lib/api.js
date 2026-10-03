@@ -6,10 +6,6 @@ const apiRequest = async (endpoint, options = {}) => {
         ...(options.headers || {})
     };
 
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
     const response = await fetch(
         `${API_BASE_URL}${endpoint}`,
         {
@@ -28,7 +24,10 @@ const apiRequest = async (endpoint, options = {}) => {
         if (response.status === 401 && typeof window !== "undefined") {
             localStorage.removeItem("user");
 
-            if (window.location.pathname !== "/login" && window.location.pathname !== "/register") {
+            if (
+                window.location.pathname !== "/login" &&
+                window.location.pathname !== "/register"
+            ) {
                 window.location.replace("/login");
             }
         }
@@ -47,6 +46,7 @@ const apiRequest = async (endpoint, options = {}) => {
 export const getCurrentUser = async () => {
     return apiRequest("/auth/me");
 };
+
 
 export const login = async (email, password) => {
     return apiRequest("/auth/login", {
@@ -75,20 +75,28 @@ export const register = async (
 };
 
 
+export const logout = async () => {
+    return apiRequest("/auth/logout", {
+        method: "POST"
+    });
+};
+
+
+// ================================
+// USER PARKING
+// ================================
+
 export const getParkingSlots = async () => {
     return apiRequest("/parking-slots");
 };
-
 
 export const getActiveParkingSessions = async () => {
     return apiRequest("/parking-sessions");
 };
 
-
 export const getParkingSessionHistory = async () => {
     return apiRequest("/parking-sessions/history");
 };
-
 
 export const getVehicles = async () => {
     return apiRequest("/vehicles");
@@ -104,7 +112,6 @@ export const createVehicle = async (vehicleNumber, vehicleType) => {
     });
 };
 
-
 export const createParkingSession = async (
     vehicleId,
     slotId
@@ -118,10 +125,7 @@ export const createParkingSession = async (
     });
 };
 
-
-export const exitParkingSession = async (
-    sessionId
-) => {
+export const exitParkingSession = async (sessionId) => {
     return apiRequest(
         `/parking-sessions/${sessionId}/exit`,
         {
@@ -130,46 +134,39 @@ export const exitParkingSession = async (
     );
 };
 
+
+// ================================
+// ADMIN USERS
+// ================================
+
 export const getAdminUsers = async () => {
     return apiRequest("/admin/users");
 };
-
 
 export const getAdminUser = async (userId) => {
     return apiRequest(`/admin/users/${userId}`);
 };
 
-
-export const updateUserRole = async (
-    userId,
-    role
-) => {
+export const updateUserRole = async (userId, role) => {
     return apiRequest(
         `/admin/users/${userId}/role`,
         {
             method: "PATCH",
-            body: JSON.stringify({
-                role
-            })
+            body: JSON.stringify({ role })
         }
     );
 };
 
-
-export const updateUserStatus = async (
-    userId,
-    status
-) => {
+export const updateUserStatus = async (userId, status) => {
     return apiRequest(
         `/admin/users/${userId}/status`,
         {
             method: "PATCH",
-            body: JSON.stringify({
-                status
-            })
+            body: JSON.stringify({ status })
         }
     );
 };
+
 
 // ================================
 // ADMIN FACILITIES
@@ -179,18 +176,13 @@ export const getAdminFacilities = async () => {
     return apiRequest("/parking-facilities");
 };
 
-
 export const getAdminFacility = async (facilityId) => {
     return apiRequest(
         `/parking-facilities/${facilityId}`
     );
 };
 
-
-export const createFacility = async (
-    name,
-    location
-) => {
+export const createFacility = async (name, location) => {
     return apiRequest("/parking-facilities", {
         method: "POST",
         body: JSON.stringify({
@@ -199,7 +191,6 @@ export const createFacility = async (
         })
     });
 };
-
 
 export const updateFacility = async (
     facilityId,
@@ -218,7 +209,6 @@ export const updateFacility = async (
     );
 };
 
-
 export const updateFacilityStatus = async (
     facilityId,
     status
@@ -227,9 +217,7 @@ export const updateFacilityStatus = async (
         `/parking-facilities/${facilityId}/status`,
         {
             method: "PATCH",
-            body: JSON.stringify({
-                status
-            })
+            body: JSON.stringify({ status })
         }
     );
 };
@@ -243,13 +231,11 @@ export const getAdminAreas = async () => {
     return apiRequest("/parking-areas");
 };
 
-
 export const getAdminArea = async (areaId) => {
     return apiRequest(
         `/parking-areas/${areaId}`
     );
 };
-
 
 export const createArea = async (
     facilityId,
@@ -265,7 +251,6 @@ export const createArea = async (
         })
     });
 };
-
 
 export const updateArea = async (
     areaId,
@@ -284,7 +269,6 @@ export const updateArea = async (
     );
 };
 
-
 export const updateAreaStatus = async (
     areaId,
     status
@@ -293,12 +277,15 @@ export const updateAreaStatus = async (
         `/parking-areas/${areaId}/status`,
         {
             method: "PATCH",
-            body: JSON.stringify({
-                status
-            })
+            body: JSON.stringify({ status })
         }
     );
 };
+
+
+// ================================
+// ADMIN VEHICLES / SESSIONS
+// ================================
 
 export const getAdminVehicles = async () => {
     return apiRequest("/admin/vehicles");
@@ -309,32 +296,64 @@ export const getAdminParkingSessions = async () => {
 };
 
 export const exitAdminParkingSession = async (sessionId) => {
-    return apiRequest(`/admin/parking-sessions/${sessionId}/exit`, {
-        method: "POST"
-    });
+    return apiRequest(
+        `/admin/parking-sessions/${sessionId}/exit`,
+        {
+            method: "POST"
+        }
+    );
 };
+
+
+// ================================
+// ADMIN SLOTS
+// ================================
 
 export const getAdminParkingSlots = async () => {
     return apiRequest("/parking-slots");
 };
 
-export const createParkingSlot = async (areaId, slotNumber, slotType) => {
+export const createParkingSlot = async (
+    areaId,
+    slotNumber,
+    slotType
+) => {
     return apiRequest("/parking-slots", {
         method: "POST",
-        body: JSON.stringify({ areaId, slotNumber, slotType })
+        body: JSON.stringify({
+            areaId,
+            slotNumber,
+            slotType
+        })
     });
 };
 
-export const updateParkingSlot = async (slotId, slotNumber, slotType) => {
-    return apiRequest(`/parking-slots/${slotId}`, {
-        method: "PUT",
-        body: JSON.stringify({ slotNumber, slotType })
-    });
+export const updateParkingSlot = async (
+    slotId,
+    slotNumber,
+    slotType
+) => {
+    return apiRequest(
+        `/parking-slots/${slotId}`,
+        {
+            method: "PUT",
+            body: JSON.stringify({
+                slotNumber,
+                slotType
+            })
+        }
+    );
 };
 
-export const updateParkingSlotStatus = async (slotId, status) => {
-    return apiRequest(`/parking-slots/${slotId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status })
-    });
+export const updateParkingSlotStatus = async (
+    slotId,
+    status
+) => {
+    return apiRequest(
+        `/parking-slots/${slotId}/status`,
+        {
+            method: "PATCH",
+            body: JSON.stringify({ status })
+        }
+    );
 };
