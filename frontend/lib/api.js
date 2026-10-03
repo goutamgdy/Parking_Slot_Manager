@@ -104,6 +104,16 @@ export const getVehicles = async () => {
     return apiRequest("/vehicles");
 };
 
+export const createVehicle = async (vehicleNumber, vehicleType) => {
+    return apiRequest("/vehicles", {
+        method: "POST",
+        body: JSON.stringify({
+            vehicleNumber,
+            vehicleType
+        })
+    });
+};
+
 
 export const createParkingSession = async (
     vehicleId,
