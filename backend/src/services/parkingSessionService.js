@@ -38,9 +38,19 @@ const createParkingSession = async (userId, vehicleId, slotId)  => {
         // 2. Check parking slot
         const slotResult = await client.query(
             `
-            SELECT id, slot_number, slot_type, status
-            FROM parking_slots
-            WHERE id = $1
+            SELECT
+                ps.id,
+                ps.slot_number,
+                ps.slot_type,
+                ps.status,
+                pa.status AS area_status,
+                pf.status AS facility_status
+            FROM parking_slots ps
+            JOIN parking_areas pa
+                ON ps.area_id = pa.id
+            JOIN parking_facilities pf
+                ON pa.facility_id = pf.id
+            WHERE ps.id = $1
             FOR UPDATE
             `,
             [slotId]
