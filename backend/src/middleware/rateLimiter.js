@@ -13,7 +13,8 @@ const commonOptions = {
 const apiLimiter = rateLimit({
     ...commonOptions,
     windowMs: 15 * 60 * 1000,
-    limit: 300
+    limit: 300,
+    skip: (req) => req.path.startsWith("/health")
 });
 
 const loginLimiter = rateLimit({
