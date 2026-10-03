@@ -30,7 +30,7 @@ test("USER can add a vehicle, park, exit, and see history", async ({ page }) => 
     const vehicleSelect = page.locator("select").nth(0);
     const slotSelect = page.locator("select").nth(1);
 
-    await vehicleSelect.selectOption({ label: new RegExp(vehicleNumber) });
+    await vehicleSelect.selectOption({ label: `${vehicleNumber} - CAR` });
     await expect(slotSelect).toBeEnabled();
     await expect(slotSelect.locator("option").nth(1)).toBeAttached();
 
