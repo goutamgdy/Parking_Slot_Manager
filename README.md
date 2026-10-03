@@ -4981,3 +4981,141 @@ The parking-session API still receives:
 The Slot ID field remains a numeric input for now.
 
 The next step is to replace the raw Slot ID input with a slot dropdown.
+
+## Automated Testing
+
+The repository now contains a separate test project:
+
+```text
+tests/
+├── api/
+├── e2e/
+├── helpers/
+├── package.json
+├── playwright.config.js
+└── README.md
+```
+
+The test project uses Playwright to test both the frontend and backend.
+
+### Test setup
+
+Start the backend:
+
+```powershell
+cd backend
+npm start
+```
+
+Start the frontend in a second PowerShell terminal:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Install the test project and Chromium in a third terminal:
+
+```powershell
+cd tests
+npm install
+npx playwright install chromium
+```
+
+### Run all automated tests
+
+```powershell
+cd tests
+npm test
+```
+
+### Watch browser automation
+
+```powershell
+cd tests
+npm run test:headed
+```
+
+This opens Chromium and visibly performs the frontend tests.
+
+### Interactive Playwright test runner
+
+```powershell
+cd tests
+npm run test:ui
+```
+
+Playwright UI Mode provides an interactive view where individual tests can be selected, executed, and inspected.
+
+### HTML report
+
+After a test run:
+
+```powershell
+cd tests
+npm run test:report
+```
+
+The report is generated under:
+
+```text
+tests/playwright-report/
+```
+
+Failed tests retain traces, screenshots, and videos according to the Playwright configuration.
+
+### Admin test credentials
+
+Admin UI and API authorization tests use the existing ADMIN account through environment variables.
+
+For the current PowerShell session:
+
+```powershell
+$env:ADMIN_EMAIL="your-existing-admin-email"
+$env:ADMIN_PASSWORD="your-existing-admin-password"
+```
+
+Optional URLs:
+
+```powershell
+$env:FRONTEND_URL="http://localhost:3000"
+$env:API_URL="http://localhost:5000/api"
+```
+
+Do not commit real credentials.
+
+### Current automated coverage
+
+USER:
+
+- Registration
+- Login
+- Invalid login
+- Add vehicle
+- Select vehicle
+- Select parking slot
+- Park vehicle
+- Verify active session
+- Exit vehicle
+- Verify parking history
+
+ADMIN:
+
+- Login
+- Admin dashboard
+- Facilities
+- Areas
+- Slots
+- Parking Sessions
+- Users
+- Vehicles
+- Navigation groups
+
+Backend/API:
+
+- Liveness
+- Readiness/database connectivity
+- USER denied ADMIN endpoints
+- ADMIN allowed ADMIN endpoints
+
+The existing `scripts/security-audit.ps1` remains the broader security audit and should continue to be reused rather than creating another PowerShell audit script.
