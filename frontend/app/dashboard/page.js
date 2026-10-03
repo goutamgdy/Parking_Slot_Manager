@@ -8,6 +8,7 @@ import {
     getActiveParkingSessions,
     getParkingSessionHistory,
     getVehicles,
+    getCurrentUser,
     createVehicle,
     createParkingSession,
     exitParkingSession
@@ -40,24 +41,43 @@ export default function Home() {
     const [exitMessage, setExitMessage] = useState("");
 
 
-    // Check authentication
+    // Check authentication and load the current user from the backend.
+    // localStorage is only used to keep the token; identity/role is
+    // authoritative on the backend.
     useEffect(() => {
 
-        const storedUser = localStorage.getItem("user");
         const token = localStorage.getItem("token");
 
-        if (!token || !storedUser) {
-            router.push("/login");
+        if (!token) {
+            router.replace("/login");
             return;
         }
 
-        try {
-            setUser(JSON.parse(storedUser));
-        } catch {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            router.push("/login");
-        }
+        const loadCurrentUser = async () => {
+            try {
+                const currentUser = await getCurrentUser();
+
+                if (currentUser.role !== "USER") {
+                    router.replace(
+                        currentUser.role === "ADMIN"
+                            ? "/admin"
+                            : "/login"
+                    );
+                    return;
+                }
+
+                setUser(currentUser);
+                localStorage.setItem(
+                    "user",
+                    JSON.stringify(currentUser)
+                );
+
+            } catch {
+                // apiRequest handles 401 and redirects to login.
+            }
+        };
+
+        loadCurrentUser();
 
     }, [router]);
 
