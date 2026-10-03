@@ -1,19 +1,19 @@
 const logger = require("../utils/logger");
 
 const errorHandler = (err, req, res, next) => {
-
     logger.error(
         `${req.method} ${req.originalUrl} - ${err.message}`
     );
 
     if (err.code === "23505") {
-
         return res.status(409).json({
-            error: "Parking session conflicts with an existing active session"
+            error: "Resource already exists or conflicts with existing data"
         });
     }
 
-    res.status(err.statusCode || 500).json({
+    const statusCode = err.statusCode || err.status || 500;
+
+    res.status(statusCode).json({
         error: err.message || "Internal Server Error"
     });
 };
