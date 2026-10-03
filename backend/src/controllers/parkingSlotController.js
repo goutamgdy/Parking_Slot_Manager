@@ -13,7 +13,7 @@ const getParkingSlots = async (req, res, next) => {
     try {
 
         const slots =
-            await parkingSlotService.getAllParkingSlots();
+            await parkingSlotService.getAllParkingSlots(req.user.role);
 
         res.status(200).json(slots);
 
