@@ -6,7 +6,9 @@ export default function AdminSessionsPage() {
     const [sessions, setSessions] = useState([]);
     const [error, setError] = useState("");
     const load = () => getAdminParkingSessions().then(setSessions).catch(e => setError(e.message));
-    useEffect(load, []);
+    useEffect(() => {
+        load();
+    }, []);
 
     const exit = async (id) => {
         setError("");
