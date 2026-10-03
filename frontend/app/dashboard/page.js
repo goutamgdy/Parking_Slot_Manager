@@ -55,7 +55,8 @@ export default function Home() {
 
         const loadCurrentUser = async () => {
             try {
-                const currentUser = await getCurrentUser();
+                const response = await getCurrentUser();
+                const currentUser = response.user;
 
                 if (currentUser.role !== "USER") {
                     router.replace(
