@@ -264,7 +264,7 @@ if ($TokenAdmin) {
 
     $FacilityName = "AUDIT-FACILITY-$RunId"
     $AreaName = "AUDIT-AREA-$RunId"
-    $SlotNumber = "AUDIT-SLOT-$RunId"
+    $SlotNumber = "AUD-$RunId"
 
     try {
         $facilityCreate = Invoke-Api -Method POST -Path "/parking-facilities" -Token $TokenAdmin -Body @{name=$FacilityName;location="Security Audit"} -ExpectedStatus @(201)
@@ -308,14 +308,14 @@ if ($TokenAdmin) {
             } catch { Write-Result "ADMIN can create slot under active area" $false $_.Exception.Message }
 
             try {
-                $blocked = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenA -Body @{areaId=$testAreaId;slotNumber="USER-UNAUTHORIZED-SLOT-$RunId";slotType="CAR"} -ExpectedStatus @(403)
+                $blocked = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenA -Body @{areaId=$testAreaId;slotNumber="AUD-USER-$RunId";slotType="CAR"} -ExpectedStatus @(403)
                 Write-Result "USER cannot create slot" ($blocked.StatusCode -eq 403)
             } catch { Write-Result "USER cannot create slot" $false $_.Exception.Message }
 
             if ($testSlotId) {
 
                 try {
-                    $capacityTest = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenAdmin -Body @{areaId=$testAreaId;slotNumber="AUDIT-SLOT-OVERFLOW-$RunId";slotType="CAR"} -ExpectedStatus @(409)
+                    $capacityTest = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenAdmin -Body @{areaId=$testAreaId;slotNumber="AUD-OVER-$RunId";slotType="CAR"} -ExpectedStatus @(409)
                     Write-Result "Area capacity prevents extra slot" ($capacityTest.StatusCode -eq 409)
                 } catch { Write-Result "Area capacity prevents extra slot" $false $_.Exception.Message }
 
@@ -359,7 +359,7 @@ if ($TokenAdmin) {
                 } catch { Write-Result "ADMIN can deactivate area after slot is free" $false $_.Exception.Message }
 
                 try {
-                    $inactiveAreaSlot = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenAdmin -Body @{areaId=$testAreaId;slotNumber="AUDIT-INACTIVE-AREA-SLOT-$RunId";slotType="CAR"} -ExpectedStatus @(409)
+                    $inactiveAreaSlot = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenAdmin -Body @{areaId=$testAreaId;slotNumber="AUD-INACT-$RunId";slotType="CAR"} -ExpectedStatus @(409)
                     Write-Result "Cannot create slot under inactive area" ($inactiveAreaSlot.StatusCode -eq 409)
                 } catch { Write-Result "Cannot create slot under inactive area" $false $_.Exception.Message }
 
