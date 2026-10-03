@@ -19,18 +19,18 @@ test("USER can add a vehicle, park, exit, and see history", async ({ page }) => 
     await page.getByRole("button", { name: "Login" }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByText("Your Vehicles")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Add Vehicle" })).toBeVisible();
 
-    await page.getByLabel("Vehicle Number").fill(vehicleNumber);
-    await page.getByLabel("Vehicle Type").selectOption("CAR");
+    await page.locator('input[placeholder="MH12AB1234"]').fill(vehicleNumber);
+    await page.locator("select").nth(2).selectOption("CAR");
     await page.getByRole("button", { name: "Add Vehicle" }).click();
 
-    await expect(page.getByText(vehicleNumber)).toBeVisible();
+    await expect(page.getByText(vehicleNumber, { exact: true })).toBeVisible();
 
-    const vehicleSelect = page.getByLabel("Vehicle");
+    const vehicleSelect = page.locator("select").nth(0);
+    const slotSelect = page.locator("select").nth(1);
+
     await vehicleSelect.selectOption({ label: new RegExp(vehicleNumber) });
-
-    const slotSelect = page.getByLabel("Parking Slot");
     await expect(slotSelect).toBeEnabled();
     await expect(slotSelect.locator("option").nth(1)).toBeAttached();
 
@@ -41,11 +41,12 @@ test("USER can add a vehicle, park, exit, and see history", async ({ page }) => 
 
     const activeHeading = page.getByRole("heading", { name: "Active Parking Sessions" });
     const activeSection = activeHeading.locator("..");
-    await expect(activeSection.getByText(vehicleNumber)).toBeVisible();
+    await expect(activeSection.getByText(vehicleNumber, { exact: true })).toBeVisible();
 
     await activeSection.getByRole("button", { name: "Exit Vehicle" }).click();
 
     await expect(page.getByText(/Parking session \d+ completed successfully/)).toBeVisible();
+
     const historySection = page.getByRole("heading", { name: "Parking Session History" }).locator("..");
-    await expect(historySection.getByText(vehicleNumber)).toBeVisible();
+    await expect(historySection.getByText(vehicleNumber, { exact: true })).toBeVisible();
 });
