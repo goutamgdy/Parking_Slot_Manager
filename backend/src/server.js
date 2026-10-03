@@ -4,10 +4,11 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 
-const pool = require("./db");
-
-const config = require("./config");
 const validateEnvironment = require("./utils/env");
+validateEnvironment();
+
+const pool = require("./db");
+const config = require("./config");
 const logger = require("./utils/logger");
 
 const errorHandler = require("./middleware/errorHandler");
@@ -22,8 +23,6 @@ const parkingAreaRoutes = require("./routes/parkingAreaRoutes");
 const adminUserRoutes = require("./routes/adminUserRoutes");
 const adminVehicleRoutes = require("./routes/adminVehicleRoutes");
 const adminParkingSessionRoutes = require("./routes/adminParkingSessionRoutes");
-
-validateEnvironment();
 
 const app = express();
 const PORT = config.server.port;
