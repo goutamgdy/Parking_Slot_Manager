@@ -3,36 +3,26 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "../../lib/api";
+import { register } from "../../lib/api";
 
-export default function LoginPage() {
+export default function RegisterPage() {
     const router = useRouter();
 
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (event) => {
+    const handleRegister = async (event) => {
         event.preventDefault();
 
         setError("");
         setLoading(true);
 
         try {
-            const response = await login(email, password);
-
-            localStorage.setItem("token", response.token);
-            localStorage.setItem(
-                "user",
-                JSON.stringify(response.user)
-            );
-
-            router.push(
-                response.user.role === "ADMIN"
-                    ? "/admin"
-                    : "/dashboard"
-            );
+            await register(name, email, password);
+            router.replace("/login");
         } catch (err) {
             setError(err.message);
         } finally {
@@ -48,7 +38,7 @@ export default function LoginPage() {
                 </h1>
 
                 <h2 className="mb-6 mt-2 text-xl font-semibold text-gray-900">
-                    Login
+                    Create account
                 </h2>
 
                 {error && (
@@ -61,19 +51,39 @@ export default function LoginPage() {
                 )}
 
                 <form
-                    onSubmit={handleLogin}
+                    onSubmit={handleRegister}
                     className="space-y-4"
                 >
                     <div>
                         <label
-                            htmlFor="login-email"
+                            htmlFor="register-name"
+                            className="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Name
+                        </label>
+
+                        <input
+                            id="register-name"
+                            value={name}
+                            onChange={(event) =>
+                                setName(event.target.value)
+                            }
+                            autoComplete="name"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            htmlFor="register-email"
                             className="mb-1 block text-sm font-medium text-gray-700"
                         >
                             Email
                         </label>
 
                         <input
-                            id="login-email"
+                            id="register-email"
                             type="email"
                             value={email}
                             onChange={(event) =>
@@ -81,31 +91,34 @@ export default function LoginPage() {
                             }
                             autoComplete="email"
                             className="w-full rounded-md border border-gray-300 px-3 py-2"
-                            placeholder="Enter email"
                             required
                         />
                     </div>
 
                     <div>
                         <label
-                            htmlFor="login-password"
+                            htmlFor="register-password"
                             className="mb-1 block text-sm font-medium text-gray-700"
                         >
                             Password
                         </label>
 
                         <input
-                            id="login-password"
+                            id="register-password"
                             type="password"
                             value={password}
                             onChange={(event) =>
                                 setPassword(event.target.value)
                             }
-                            autoComplete="current-password"
+                            autoComplete="new-password"
+                            minLength={8}
                             className="w-full rounded-md border border-gray-300 px-3 py-2"
-                            placeholder="Enter password"
                             required
                         />
+
+                        <p className="mt-1 text-xs text-gray-500">
+                            Password must contain at least 8 characters.
+                        </p>
                     </div>
 
                     <button
@@ -113,17 +126,19 @@ export default function LoginPage() {
                         disabled={loading}
                         className="w-full rounded-md bg-black py-2 font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
                     >
-                        {loading ? "Logging in..." : "Login"}
+                        {loading
+                            ? "Creating account..."
+                            : "Register"}
                     </button>
                 </form>
 
                 <p className="mt-6 text-center text-sm text-gray-600">
-                    Don't have an account?{" "}
+                    Already have an account?{" "}
                     <Link
-                        href="/register"
+                        href="/login"
                         className="font-semibold text-gray-900 underline"
                     >
-                        Register
+                        Login
                     </Link>
                 </p>
             </div>

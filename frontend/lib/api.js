@@ -28,17 +28,35 @@ const apiRequest = async (endpoint, options = {}) => {
         }
     );
 
-    const data = await response.json();
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+        ? await response.json()
+        : {};
 
     if (!response.ok) {
-        throw new Error(
+        if (response.status === 401 && typeof window !== "undefined") {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+
+            if (window.location.pathname !== "/login" && window.location.pathname !== "/register") {
+                window.location.replace("/login");
+            }
+        }
+
+        const error = new Error(
             data.error || "Something went wrong"
         );
+        error.status = response.status;
+        throw error;
     }
 
     return data;
 };
 
+
+export const getCurrentUser = async () => {
+    return apiRequest("/auth/me");
+};
 
 export const login = async (email, password) => {
     return apiRequest("/auth/login", {
@@ -84,6 +102,16 @@ export const getParkingSessionHistory = async () => {
 
 export const getVehicles = async () => {
     return apiRequest("/vehicles");
+};
+
+export const createVehicle = async (vehicleNumber, vehicleType) => {
+    return apiRequest("/vehicles", {
+        method: "POST",
+        body: JSON.stringify({
+            vehicleNumber,
+            vehicleType
+        })
+    });
 };
 
 
@@ -280,4 +308,43 @@ export const updateAreaStatus = async (
             })
         }
     );
+};
+
+export const getAdminVehicles = async () => {
+    return apiRequest("/admin/vehicles");
+};
+
+export const getAdminParkingSessions = async () => {
+    return apiRequest("/admin/parking-sessions");
+};
+
+export const exitAdminParkingSession = async (sessionId) => {
+    return apiRequest(`/admin/parking-sessions/${sessionId}/exit`, {
+        method: "POST"
+    });
+};
+
+export const getAdminParkingSlots = async () => {
+    return apiRequest("/parking-slots");
+};
+
+export const createParkingSlot = async (areaId, slotNumber, slotType) => {
+    return apiRequest("/parking-slots", {
+        method: "POST",
+        body: JSON.stringify({ areaId, slotNumber, slotType })
+    });
+};
+
+export const updateParkingSlot = async (slotId, slotNumber, slotType) => {
+    return apiRequest(`/parking-slots/${slotId}`, {
+        method: "PUT",
+        body: JSON.stringify({ slotNumber, slotType })
+    });
+};
+
+export const updateParkingSlotStatus = async (slotId, status) => {
+    return apiRequest(`/parking-slots/${slotId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status })
+    });
 };

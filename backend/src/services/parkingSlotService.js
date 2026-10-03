@@ -7,7 +7,7 @@ const pool = require("../db");
  * =========================================================
  */
 
-const getAllParkingSlots = async () => {
+const getAllParkingSlots = async (role) => {
 
     const result = await pool.query(
         `
@@ -15,8 +15,10 @@ const getAllParkingSlots = async () => {
             ps.id,
             ps.area_id,
             pa.name AS area_name,
+            pa.status AS area_status,
             pa.facility_id,
             pf.name AS facility_name,
+            pf.status AS facility_status,
             ps.slot_number,
             ps.slot_type,
             ps.status,
@@ -30,9 +32,16 @@ const getAllParkingSlots = async () => {
         JOIN parking_facilities pf
             ON pa.facility_id = pf.id
 
+        WHERE
+            $1 = 'ADMIN'
+            OR (
+                pa.status = 'ACTIVE'
+                AND pf.status = 'ACTIVE'
+            )
         ORDER BY
             ps.id
         `
+    , [role || "USER"]
     );
 
     return result.rows;
@@ -326,11 +335,17 @@ const updateParkingSlot = async (
         const slotResult = await client.query(
             `
             SELECT
-                id,
-                area_id,
-                status
-            FROM parking_slots
-            WHERE id = $1
+                ps.id,
+                ps.area_id,
+                ps.status,
+                pa.status AS area_status,
+                pf.status AS facility_status
+            FROM parking_slots ps
+            JOIN parking_areas pa
+                ON ps.area_id = pa.id
+            JOIN parking_facilities pf
+                ON pa.facility_id = pf.id
+            WHERE ps.id = $1
             FOR UPDATE
             `,
             [slotId]
@@ -452,11 +467,17 @@ const updateParkingSlotStatus = async (
         const slotResult = await client.query(
             `
             SELECT
-                id,
-                area_id,
-                status
-            FROM parking_slots
-            WHERE id = $1
+                ps.id,
+                ps.area_id,
+                ps.status,
+                pa.status AS area_status,
+                pf.status AS facility_status
+            FROM parking_slots ps
+            JOIN parking_areas pa
+                ON ps.area_id = pa.id
+            JOIN parking_facilities pf
+                ON pa.facility_id = pf.id
+            WHERE ps.id = $1
             FOR UPDATE
             `,
             [slotId]
@@ -479,8 +500,28 @@ const updateParkingSlotStatus = async (
 
 
         /*
-         * Never manually change an occupied slot.
+         * A slot can only be made AVAILABLE/INACTIVE when its
+         * parent area and facility are ACTIVE.
+         *
+         * This keeps the hierarchy consistent:
+         * Facility -> Area -> Slot.
          */
+        if (
+            status !== "OCCUPIED" &&
+            (
+                slot.area_status !== "ACTIVE" ||
+                slot.facility_status !== "ACTIVE"
+            )
+        ) {
+            const error = new Error(
+                "Cannot enable or change an inactive parking hierarchy"
+            );
+            error.statusCode = 409;
+            throw error;
+        }
+
+
+
 
         if (
             slot.status === "OCCUPIED" &&

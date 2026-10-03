@@ -8,6 +8,8 @@ import {
     getActiveParkingSessions,
     getParkingSessionHistory,
     getVehicles,
+    getCurrentUser,
+    createVehicle,
     createParkingSession,
     exitParkingSession
 } from "../../lib/api";
@@ -22,6 +24,10 @@ export default function Home() {
     const [activeSessions, setActiveSessions] = useState([]);
     const [sessionHistory, setSessionHistory] = useState([]);
     const [vehicles, setVehicles] = useState([]);
+    const [vehicleNumber, setVehicleNumber] = useState("");
+    const [vehicleType, setVehicleType] = useState("CAR");
+    const [addingVehicle, setAddingVehicle] = useState(false);
+    const [vehicleMessage, setVehicleMessage] = useState("");
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -35,24 +41,44 @@ export default function Home() {
     const [exitMessage, setExitMessage] = useState("");
 
 
-    // Check authentication
+    // Check authentication and load the current user from the backend.
+    // localStorage is only used to keep the token; identity/role is
+    // authoritative on the backend.
     useEffect(() => {
 
-        const storedUser = localStorage.getItem("user");
         const token = localStorage.getItem("token");
 
-        if (!token || !storedUser) {
-            router.push("/login");
+        if (!token) {
+            router.replace("/login");
             return;
         }
 
-        try {
-            setUser(JSON.parse(storedUser));
-        } catch {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            router.push("/login");
-        }
+        const loadCurrentUser = async () => {
+            try {
+                const response = await getCurrentUser();
+                const currentUser = response.user;
+
+                if (currentUser.role !== "USER") {
+                    router.replace(
+                        currentUser.role === "ADMIN"
+                            ? "/admin"
+                            : "/login"
+                    );
+                    return;
+                }
+
+                setUser(currentUser);
+                localStorage.setItem(
+                    "user",
+                    JSON.stringify(currentUser)
+                );
+
+            } catch {
+                // apiRequest handles 401 and redirects to login.
+            }
+        };
+
+        loadCurrentUser();
 
     }, [router]);
 
@@ -128,7 +154,9 @@ export default function Home() {
     const availableMatchingSlots = parkingSlots.filter(
         (slot) =>
             slot.status === "AVAILABLE" &&
-            slot.slot_type === selectedVehicle?.vehicle_type
+            slot.slot_type === selectedVehicle?.vehicle_type &&
+            slot.area_status === "ACTIVE" &&
+            slot.facility_status === "ACTIVE"
     );
 
 
@@ -492,6 +520,93 @@ export default function Home() {
                         <div className="mt-10 rounded-lg bg-white p-6 shadow">
 
                             <h2 className="text-xl font-semibold text-gray-800">
+                                Add Vehicle
+                            </h2>
+
+                            <form
+                                onSubmit={async (event) => {
+                                    event.preventDefault();
+                                    setError(null);
+                                    setVehicleMessage("");
+                                    setAddingVehicle(true);
+
+                                    try {
+                                        const vehicle = await createVehicle(
+                                            vehicleNumber,
+                                            vehicleType
+                                        );
+
+                                        setVehicles((current) => [
+                                            ...current,
+                                            vehicle
+                                        ]);
+                                        setVehicleNumber("");
+                                        setVehicleType("CAR");
+                                        setVehicleMessage(
+                                            `Vehicle ${vehicle.vehicle_number} added successfully`
+                                        );
+                                    } catch (error) {
+                                        setError({
+                                            message: error.message,
+                                            status: error.status
+                                        });
+                                    } finally {
+                                        setAddingVehicle(false);
+                                    }
+                                }}
+                                className="mt-4 grid gap-4 md:grid-cols-3"
+                            >
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Vehicle Number
+                                    </label>
+                                    <input
+                                        value={vehicleNumber}
+                                        onChange={(event) =>
+                                            setVehicleNumber(event.target.value.toUpperCase())
+                                        }
+                                        placeholder="MH12AB1234"
+                                        className="mt-2 w-full rounded-md border border-gray-300 p-2"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Vehicle Type
+                                    </label>
+                                    <select
+                                        value={vehicleType}
+                                        onChange={(event) =>
+                                            setVehicleType(event.target.value)
+                                        }
+                                        className="mt-2 w-full rounded-md border border-gray-300 p-2"
+                                    >
+                                        <option value="CAR">CAR</option>
+                                        <option value="BIKE">BIKE</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex items-end">
+                                    <button
+                                        type="submit"
+                                        disabled={addingVehicle}
+                                        className="w-full rounded-md bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-50"
+                                    >
+                                        {addingVehicle ? "Adding..." : "Add Vehicle"}
+                                    </button>
+                                </div>
+                            </form>
+
+                            {vehicleMessage && (
+                                <p className="mt-4 text-green-600">
+                                    {vehicleMessage}
+                                </p>
+                            )}
+
+                            <div className="mt-8 border-t pt-6">
+
+                            <h2 className="text-xl font-semibold text-gray-800">
                                 Vehicles
                             </h2>
 
@@ -528,6 +643,7 @@ export default function Home() {
 
                             )}
 
+                            </div>
                         </div>
 
 
