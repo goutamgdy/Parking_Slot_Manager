@@ -154,7 +154,9 @@ export default function Home() {
     const availableMatchingSlots = parkingSlots.filter(
         (slot) =>
             slot.status === "AVAILABLE" &&
-            slot.slot_type === selectedVehicle?.vehicle_type
+            slot.slot_type === selectedVehicle?.vehicle_type &&
+            slot.area_status === "ACTIVE" &&
+            slot.facility_status === "ACTIVE"
     );
 
 
