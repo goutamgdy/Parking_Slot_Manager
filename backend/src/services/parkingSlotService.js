@@ -7,7 +7,7 @@ const pool = require("../db");
  * =========================================================
  */
 
-const getAllParkingSlots = async () => {
+const getAllParkingSlots = async (role) => {
 
     const result = await pool.query(
         `
@@ -30,9 +30,16 @@ const getAllParkingSlots = async () => {
         JOIN parking_facilities pf
             ON pa.facility_id = pf.id
 
+        WHERE
+            $1 = 'ADMIN'
+            OR (
+                pa.status = 'ACTIVE'
+                AND pf.status = 'ACTIVE'
+            )
         ORDER BY
             ps.id
         `
+    , [role || "USER"]
     );
 
     return result.rows;
