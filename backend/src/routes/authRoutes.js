@@ -8,11 +8,15 @@ const {
 
 const authenticateToken = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorization");
+const {
+    loginLimiter,
+    registerLimiter
+} = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
+router.post("/register", registerLimiter, register);
+router.post("/login", loginLimiter, login);
 router.post("/logout", logout);
 
 router.get("/me", authenticateToken, (req, res) => {
