@@ -80,6 +80,17 @@ const createParkingSession = async (userId, vehicleId, slotId)  => {
 
         const slot = slotResult.rows[0];
 
+        if (
+            slot.area_status !== "ACTIVE" ||
+            slot.facility_status !== "ACTIVE"
+        ) {
+            const error = new Error(
+                "Parking slot is not available because its parking area or facility is inactive"
+            );
+            error.statusCode = 409;
+            throw error;
+        }
+
         logger.info(
             `Parking slot validated slotId=${slotId} slotType=${slot.slot_type} status=${slot.status}`
         );
