@@ -25,7 +25,7 @@ test("ADMIN can navigate the complete management hierarchy", async ({ page }) =>
         { path: "/admin/areas", heading: "Parking Areas" },
         { path: "/admin/slots", heading: "Parking Slots" },
         { path: "/admin/sessions", heading: "Parking Sessions" },
-        { path: "/admin/users", heading: "Users" },
+        { path: "/admin/users", heading: "User Management" },
         { path: "/admin/vehicles", heading: "Vehicles" }
     ];
 
@@ -37,8 +37,8 @@ test("ADMIN can navigate the complete management hierarchy", async ({ page }) =>
 });
 
 test("ADMIN sees the expected navigation groups", async ({ page }) => {
-    await expect(page.getByText("Parking Management")).toBeVisible();
-    await expect(page.getByText("People & Vehicles")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Administration navigation" }).getByText("Parking Management")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Administration navigation" }).getByText("People & Vehicles")).toBeVisible();
 
     for (const label of ["Facilities", "Areas", "Slots", "Parking Sessions", "Users", "Vehicles"]) {
         await expect(page.getByRole("button", { name: label })).toBeVisible();
