@@ -1,4 +1,4 @@
-# Parking Slot Manager - USER Security Audit
+# Parking Slot Manager - USER + ADMIN Security Audit
 # Run from PowerShell while backend is running at http://localhost:5000.
 # This script creates temporary test users/vehicle and exits the test session at the end.
 # It does not delete database records because the project currently has no delete endpoints.
@@ -66,7 +66,7 @@ function Invoke-Api {
 
 Write-Host ""
 Write-Host "=============================================" -ForegroundColor Cyan
-Write-Host " Parking Slot Manager - USER Security Audit" -ForegroundColor Cyan
+Write-Host " Parking Slot Manager - USER + ADMIN Security Audit" -ForegroundColor Cyan
 Write-Host "=============================================" -ForegroundColor Cyan
 Write-Host "Backend: $BaseUrl"
 Write-Host "Run ID : $RunId"
@@ -199,6 +199,184 @@ try {
     Write-Result "User B cannot see User A completed history" ($null -eq $leak)
 } catch { Write-Result "User B cannot see User A completed history" $false $_.Exception.Message }
 
+
+# =========================================================
+# ADMIN SECURITY + FUNCTIONAL AUDIT
+# =========================================================
+
+Write-Host ""
+Write-Host "=============================================" -ForegroundColor Cyan
+Write-Host " ADMIN Security + Functional Audit" -ForegroundColor Cyan
+Write-Host "=============================================" -ForegroundColor Cyan
+Write-Host ""
+
+$AdminEmail = Read-Host "Enter existing ADMIN email"
+$AdminSecurePassword = Read-Host "Enter ADMIN password" -AsSecureString
+$AdminPasswordPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($AdminSecurePassword)
+$AdminPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($AdminPasswordPtr)
+[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($AdminPasswordPtr)
+
+try {
+    $adminLogin = Invoke-Api -Method POST -Path "/auth/login" -Body @{email=$AdminEmail;password=$AdminPassword} -ExpectedStatus @(200)
+    $TokenAdmin = $adminLogin.Body.token
+    if (-not $TokenAdmin) { throw "Admin login response did not contain token" }
+    Write-Result "Admin login" $true
+} catch {
+    Write-Result "Admin login" $false $_.Exception.Message
+    Write-Host "Admin tests cannot continue without a valid ADMIN account." -ForegroundColor Yellow
+}
+
+if ($TokenAdmin) {
+
+    try {
+        $adminMe = Invoke-Api -Method GET -Path "/auth/me" -Token $TokenAdmin -ExpectedStatus @(200)
+        $adminUserId = $adminMe.Body.user.userId
+        $adminRole = $adminMe.Body.user.role
+        Write-Result "Admin /auth/me identity" ($adminRole -eq "ADMIN" -and $adminUserId)
+    } catch { Write-Result "Admin /auth/me identity" $false $_.Exception.Message }
+
+    foreach ($adminPath in @(
+        "/admin/users",
+        "/admin/vehicles",
+        "/admin/parking-sessions"
+    )) {
+        try {
+            $blocked = Invoke-Api -Method GET -Path $adminPath -Token $TokenA -ExpectedStatus @(403)
+            Write-Result "USER cannot access $adminPath" ($blocked.StatusCode -eq 403)
+        } catch { Write-Result "USER cannot access $adminPath" $false $_.Exception.Message }
+    }
+
+    try {
+        $adminUsers = Invoke-Api -Method GET -Path "/admin/users" -Token $TokenAdmin -ExpectedStatus @(200)
+        Write-Result "ADMIN can view users" ($null -ne $adminUsers.Body)
+    } catch { Write-Result "ADMIN can view users" $false $_.Exception.Message }
+
+    try {
+        $adminVehicles = Invoke-Api -Method GET -Path "/admin/vehicles" -Token $TokenAdmin -ExpectedStatus @(200)
+        $adminVehicleMatch = @($adminVehicles.Body) | Where-Object { [int]$_.id -eq $vehicleAId }
+        Write-Result "ADMIN can view all vehicles" ($null -ne $adminVehicleMatch)
+    } catch { Write-Result "ADMIN can view all vehicles" $false $_.Exception.Message }
+
+    try {
+        $adminSessions = Invoke-Api -Method GET -Path "/admin/parking-sessions" -Token $TokenAdmin -ExpectedStatus @(200)
+        Write-Result "ADMIN can view parking sessions" ($null -ne $adminSessions.Body)
+    } catch { Write-Result "ADMIN can view parking sessions" $false $_.Exception.Message }
+
+    $FacilityName = "AUDIT-FACILITY-$RunId"
+    $AreaName = "AUDIT-AREA-$RunId"
+    $SlotNumber = "AUDIT-SLOT-$RunId"
+
+    try {
+        $facilityCreate = Invoke-Api -Method POST -Path "/parking-facilities" -Token $TokenAdmin -Body @{name=$FacilityName;location="Security Audit"} -ExpectedStatus @(201)
+        $testFacilityId = [int]$facilityCreate.Body.id
+        if (-not $testFacilityId) { throw "Facility response did not contain id" }
+        Write-Result "ADMIN can create facility" $true
+    } catch { Write-Result "ADMIN can create facility" $false $_.Exception.Message }
+
+    if ($testFacilityId) {
+
+        try {
+            $facilityList = Invoke-Api -Method GET -Path "/parking-facilities" -Token $TokenAdmin -ExpectedStatus @(200)
+            $foundFacility = @($facilityList.Body) | Where-Object { [int]$_.id -eq $testFacilityId }
+            Write-Result "ADMIN can view created facility" ($null -ne $foundFacility)
+        } catch { Write-Result "ADMIN can view created facility" $false $_.Exception.Message }
+
+        try {
+            $blocked = Invoke-Api -Method POST -Path "/parking-facilities" -Token $TokenA -Body @{name="USER-UNAUTHORIZED-$RunId";location="Security Audit"} -ExpectedStatus @(403)
+            Write-Result "USER cannot create facility" ($blocked.StatusCode -eq 403)
+        } catch { Write-Result "USER cannot create facility" $false $_.Exception.Message }
+
+        try {
+            $areaCreate = Invoke-Api -Method POST -Path "/parking-areas" -Token $TokenAdmin -Body @{facilityId=$testFacilityId;name=$AreaName;capacity=1} -ExpectedStatus @(201)
+            $testAreaId = [int]$areaCreate.Body.id
+            if (-not $testAreaId) { throw "Area response did not contain id" }
+            Write-Result "ADMIN can create area under active facility" $true
+        } catch { Write-Result "ADMIN can create area under active facility" $false $_.Exception.Message }
+
+        try {
+            $blocked = Invoke-Api -Method POST -Path "/parking-areas" -Token $TokenA -Body @{facilityId=$testFacilityId;name="USER-UNAUTHORIZED-AREA-$RunId";capacity=1} -ExpectedStatus @(403)
+            Write-Result "USER cannot create area" ($blocked.StatusCode -eq 403)
+        } catch { Write-Result "USER cannot create area" $false $_.Exception.Message }
+
+        if ($testAreaId) {
+
+            try {
+                $slotCreate = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenAdmin -Body @{areaId=$testAreaId;slotNumber=$SlotNumber;slotType="CAR"} -ExpectedStatus @(201)
+                $testSlotId = [int]$slotCreate.Body.id
+                if (-not $testSlotId) { throw "Slot response did not contain id" }
+                Write-Result "ADMIN can create slot under active area" $true
+            } catch { Write-Result "ADMIN can create slot under active area" $false $_.Exception.Message }
+
+            try {
+                $blocked = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenA -Body @{areaId=$testAreaId;slotNumber="USER-UNAUTHORIZED-SLOT-$RunId";slotType="CAR"} -ExpectedStatus @(403)
+                Write-Result "USER cannot create slot" ($blocked.StatusCode -eq 403)
+            } catch { Write-Result "USER cannot create slot" $false $_.Exception.Message }
+
+            if ($testSlotId) {
+
+                try {
+                    $capacityTest = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenAdmin -Body @{areaId=$testAreaId;slotNumber="AUDIT-SLOT-OVERFLOW-$RunId";slotType="CAR"} -ExpectedStatus @(409)
+                    Write-Result "Area capacity prevents extra slot" ($capacityTest.StatusCode -eq 409)
+                } catch { Write-Result "Area capacity prevents extra slot" $false $_.Exception.Message }
+
+                try {
+                    $facilityBlock = Invoke-Api -Method PATCH -Path "/parking-facilities/$testFacilityId/status" -Token $TokenAdmin -Body @{status="INACTIVE"} -ExpectedStatus @(409)
+                    Write-Result "Facility cannot deactivate while area is active" ($facilityBlock.StatusCode -eq 409)
+                } catch { Write-Result "Facility cannot deactivate while area is active" $false $_.Exception.Message }
+
+                try {
+                    $adminTestPark = Invoke-Api -Method POST -Path "/parking-sessions" -Token $TokenA -Body @{vehicleId=$vehicleAId;slotId=$testSlotId} -ExpectedStatus @(201)
+                    $adminTestSessionId = [int]$adminTestPark.Body.id
+                    Write-Result "USER can park in ADMIN-created slot" ($adminTestSessionId -gt 0)
+                } catch { Write-Result "USER can park in ADMIN-created slot" $false $_.Exception.Message }
+
+                if ($adminTestSessionId) {
+
+                    try {
+                        $areaBlock = Invoke-Api -Method PATCH -Path "/parking-areas/$testAreaId/status" -Token $TokenAdmin -Body @{status="INACTIVE"} -ExpectedStatus @(409)
+                        Write-Result "Area cannot deactivate while slot is occupied" ($areaBlock.StatusCode -eq 409)
+                    } catch { Write-Result "Area cannot deactivate while slot is occupied" $false $_.Exception.Message }
+
+                    try {
+                        $adminSession = Invoke-Api -Method GET -Path "/admin/parking-sessions/$adminTestSessionId" -Token $TokenAdmin -ExpectedStatus @(200)
+                        Write-Result "ADMIN can view specific parking session" ([int]$adminSession.Body.id -eq $adminTestSessionId)
+                    } catch { Write-Result "ADMIN can view specific parking session" $false $_.Exception.Message }
+
+                    try {
+                        Invoke-Api -Method POST -Path "/admin/parking-sessions/$adminTestSessionId/exit" -Token $TokenAdmin -ExpectedStatus @(200) | Out-Null
+                        Write-Result "ADMIN can exit active parking session" $true
+                    } catch { Write-Result "ADMIN can exit active parking session" $false $_.Exception.Message }
+                }
+
+                try {
+                    $manualOccupied = Invoke-Api -Method PATCH -Path "/parking-slots/$testSlotId/status" -Token $TokenAdmin -Body @{status="OCCUPIED"} -ExpectedStatus @(409)
+                    Write-Result "ADMIN cannot manually mark available slot OCCUPIED" ($manualOccupied.StatusCode -eq 409)
+                } catch { Write-Result "ADMIN cannot manually mark available slot OCCUPIED" $false $_.Exception.Message }
+
+                try {
+                    $areaInactive = Invoke-Api -Method PATCH -Path "/parking-areas/$testAreaId/status" -Token $TokenAdmin -Body @{status="INACTIVE"} -ExpectedStatus @(200)
+                    Write-Result "ADMIN can deactivate area after slot is free" ($areaInactive.Body.status -eq "INACTIVE")
+                } catch { Write-Result "ADMIN can deactivate area after slot is free" $false $_.Exception.Message }
+
+                try {
+                    $inactiveAreaSlot = Invoke-Api -Method POST -Path "/parking-slots" -Token $TokenAdmin -Body @{areaId=$testAreaId;slotNumber="AUDIT-INACTIVE-AREA-SLOT-$RunId";slotType="CAR"} -ExpectedStatus @(409)
+                    Write-Result "Cannot create slot under inactive area" ($inactiveAreaSlot.StatusCode -eq 409)
+                } catch { Write-Result "Cannot create slot under inactive area" $false $_.Exception.Message }
+
+                try {
+                    $facilityInactive = Invoke-Api -Method PATCH -Path "/parking-facilities/$testFacilityId/status" -Token $TokenAdmin -Body @{status="INACTIVE"} -ExpectedStatus @(200)
+                    Write-Result "ADMIN can deactivate facility after areas are inactive" ($facilityInactive.Body.status -eq "INACTIVE")
+                } catch { Write-Result "ADMIN can deactivate facility after areas are inactive" $false $_.Exception.Message }
+
+                try {
+                    $inactiveFacilityArea = Invoke-Api -Method POST -Path "/parking-areas" -Token $TokenAdmin -Body @{facilityId=$testFacilityId;name="AUDIT-INACTIVE-FACILITY-AREA-$RunId";capacity=1} -ExpectedStatus @(409)
+                    Write-Result "Cannot create area under inactive facility" ($inactiveFacilityArea.StatusCode -eq 409)
+                } catch { Write-Result "Cannot create area under inactive facility" $false $_.Exception.Message }
+            }
+        }
+    }
+}
+
 Write-Host ""
 Write-Host "=============================================" -ForegroundColor Cyan
 Write-Host " Security Audit Result" -ForegroundColor Cyan
@@ -212,6 +390,10 @@ Write-Host "  User B: $UserBEmail"
 Write-Host "  Vehicle: $VehicleNumber"
 Write-Host "  Vehicle ID: $vehicleAId"
 Write-Host "  Session ID: $sessionAId"
+if ($testFacilityId) { Write-Host "  Admin test Facility ID: $testFacilityId" }
+if ($testAreaId) { Write-Host "  Admin test Area ID: $testAreaId" }
+if ($testSlotId) { Write-Host "  Admin test Slot ID: $testSlotId" }
+if ($adminTestSessionId) { Write-Host "  Admin test Session ID: $adminTestSessionId" }
 Write-Host ""
 
 if ($Failed -eq 0) {
