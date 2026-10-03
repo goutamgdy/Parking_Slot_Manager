@@ -120,17 +120,7 @@ app.get("/api/health", async (req, res) => {
     }
 });
 
-app.use(
-    "/api",
-    apiLimiter,
-    (req, res, next) => {
-        if (req.path.startsWith("/health")) {
-            return next("route");
-        }
-
-        next();
-    }
-);
+app.use("/api", apiLimiter);
 
 app.use("/api/parking-slots", parkingSlotRoutes);
 app.use("/api/parking-sessions", parkingSessionRoutes);
