@@ -2,7 +2,7 @@ const logger = require("../utils/logger");
 
 const errorHandler = (err, req, res, next) => {
     logger.error(
-        `${req.method} ${req.originalUrl} - ${err.message}`
+        \`${req.method} ${req.originalUrl} - ${err.message}\`
     );
 
     if (err.code === "23505") {
@@ -11,10 +11,24 @@ const errorHandler = (err, req, res, next) => {
         });
     }
 
+    if (err.type === "entity.too.large") {
+        return res.status(413).json({
+            error: "Request body is too large"
+        });
+    }
+
     const statusCode = err.statusCode || err.status || 500;
 
+    const isClientError = statusCode >= 400 && statusCode < 500;
+    const message =
+        isClientError
+            ? err.message
+            : process.env.NODE_ENV === "production"
+                ? "Internal Server Error"
+                : err.message || "Internal Server Error";
+
     res.status(statusCode).json({
-        error: err.message || "Internal Server Error"
+        error: message || "Internal Server Error"
     });
 };
 
