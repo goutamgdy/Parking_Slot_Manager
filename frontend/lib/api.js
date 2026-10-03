@@ -1,16 +1,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-const getToken = () => {
-    if (typeof window === "undefined") {
-        return null;
-    }
-
-    return localStorage.getItem("token");
-};
-
 const apiRequest = async (endpoint, options = {}) => {
-    const token = getToken();
-
     const headers = {
         "Content-Type": "application/json",
         ...(options.headers || {})
@@ -24,6 +14,7 @@ const apiRequest = async (endpoint, options = {}) => {
         `${API_BASE_URL}${endpoint}`,
         {
             ...options,
+            credentials: "include",
             headers
         }
     );
@@ -35,7 +26,6 @@ const apiRequest = async (endpoint, options = {}) => {
 
     if (!response.ok) {
         if (response.status === 401 && typeof window !== "undefined") {
-            localStorage.removeItem("token");
             localStorage.removeItem("user");
 
             if (window.location.pathname !== "/login" && window.location.pathname !== "/register") {
