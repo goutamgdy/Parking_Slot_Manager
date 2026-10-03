@@ -335,11 +335,17 @@ const updateParkingSlot = async (
         const slotResult = await client.query(
             `
             SELECT
-                id,
-                area_id,
-                status
-            FROM parking_slots
-            WHERE id = $1
+                ps.id,
+                ps.area_id,
+                ps.status,
+                pa.status AS area_status,
+                pf.status AS facility_status
+            FROM parking_slots ps
+            JOIN parking_areas pa
+                ON ps.area_id = pa.id
+            JOIN parking_facilities pf
+                ON pa.facility_id = pf.id
+            WHERE ps.id = $1
             FOR UPDATE
             `,
             [slotId]
@@ -359,6 +365,20 @@ const updateParkingSlot = async (
 
 
         const slot = slotResult.rows[0];
+
+        if (
+            status !== "OCCUPIED" &&
+            (
+                slot.area_status !== "ACTIVE" ||
+                slot.facility_status !== "ACTIVE"
+            )
+        ) {
+            const error = new Error(
+                "Cannot enable or change an inactive parking hierarchy"
+            );
+            error.statusCode = 409;
+            throw error;
+        }
 
 
         /*
@@ -488,7 +508,11 @@ const updateParkingSlotStatus = async (
 
 
         /*
-         * Never manually change an occupied slot.
+         * A slot can only be made AVAILABLE/INACTIVE when its
+         * parent area and facility are ACTIVE.
+         *
+         * This keeps the hierarchy consistent:
+         * Facility -> Area -> Slot.
          */
 
         if (
