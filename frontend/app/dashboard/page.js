@@ -46,13 +46,6 @@ export default function Home() {
     // authoritative on the backend.
     useEffect(() => {
 
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-            router.replace("/login");
-            return;
-        }
-
         const loadCurrentUser = async () => {
             try {
                 const response = await getCurrentUser();
@@ -68,10 +61,6 @@ export default function Home() {
                 }
 
                 setUser(currentUser);
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(currentUser)
-                );
 
             } catch {
                 // apiRequest handles 401 and redirects to login.
